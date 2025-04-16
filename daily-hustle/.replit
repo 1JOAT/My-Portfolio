@@ -1,0 +1,31 @@
+run = "npm start"
+entrypoint = "App.tsx"
+
+hidden = [".config", "package-lock.json"]
+
+[nix]
+channel = "stable-22_11"
+
+[env]
+PATH = "/home/runner/$REPL_SLUG/.config/npm/node_global/bin:/home/runner/$REPL_SLUG/node_modules/.bin"
+npm_config_prefix = "/home/runner/$REPL_SLUG/.config/npm/node_global"
+EXPO_PUBLIC_API_URL = "https://$REPL_SLUG.$REPL_OWNER.repl.co"
+
+[packager]
+language = "nodejs"
+
+[packager.features]
+packageSearch = true
+guessImports = true
+enabledForHosting = false
+
+[languages.javascript]
+pattern = "**/{*.js,*.jsx,*.ts,*.tsx}"
+syntax = "jsx"
+
+[languages.javascript.languageServer]
+start = ["typescript-language-server", "--stdio"]
+
+[server]
+port = 5050
+run = "node server.js" 
