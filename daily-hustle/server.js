@@ -15,24 +15,13 @@ const PORT = process.env.PORT || 5050;
 
 // Middleware
 app.use(express.json());
-console.log(process.env.MONGODB_URI);
-
 
 // MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI ? process.env.MONGODB_URI.trim() : 'mongodb+srv://[your-connection-string]';
+const MONGODB_URI = process.env.MONGODB_URI;
 
-mongoose.connect(MONGODB_URI, {
-  retryWrites: true,
-  w: 'majority',
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
-})
+mongoose.connect(MONGODB_URI)
   .then(() => console.log('Connected to MongoDB Atlas'))
-  .catch(err => {
-    console.error('MongoDB connection error:', err);
-    // Continue running the server even if MongoDB connection fails
-    console.log('Server will run without database connection. Some features may not work.');
-  });
+  .catch(err => console.error('MongoDB connection error:', err));
 
 // Define MongoDB Schemas and Models
 const taskSchema = new mongoose.Schema({

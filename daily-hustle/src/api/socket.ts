@@ -1,8 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { Message } from '../types';
-import { Platform } from 'react-native';
 
-// Use the same URL as in api.ts
+// Replace with your server URL when deployed
 const SOCKET_URL = 'http://172.20.10.2:5050';
 
 let socket: Socket | null = null;

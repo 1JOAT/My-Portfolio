@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, KeyboardAvoidingView, Platform, AppState } from 'react-native';
+import { View, Text, StyleSheet, FlatList, KeyboardAvoidingView, Platform, AppState, TouchableOpacity, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { Message } from '../types';
 import { fetchMessages } from '../api/api';
 import { Button } from '../components/Button';
@@ -9,9 +9,44 @@ import { Input } from '../components/Input';
 import { ChatMessage } from '../components/ChatMessage';
 import { initializeSocket, sendChatMessage, subscribeToChatMessages, disconnectSocket } from '../api/socket';
 import { sendNewMessageNotification } from '../utils/notifications';
+import { LinearGradient } from '../utils/GradientWrapper';
+
+// Sample messages for immediate display
+const SAMPLE_MESSAGES: Message[] = [
+  {
+    id: '1',
+    text: 'Hey, how\'s the Daily Hustle app coming along?',
+    timestamp: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+    userId: 'other1',
+  },
+  {
+    id: '2',
+    text: 'Making good progress! Just fixing some styling issues.',
+    timestamp: new Date(Date.now() - 3000000).toISOString(), // 50 minutes ago
+    userId: 'dev1',
+  },
+  {
+    id: '3',
+    text: 'The top navigation looks great now!',
+    timestamp: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
+    userId: 'dev1',
+  },
+  {
+    id: '4',
+    text: 'Can\'t wait to see the final version. When will it be ready?',
+    timestamp: new Date(Date.now() - 900000).toISOString(), // 15 minutes ago
+    userId: 'other1',
+  },
+  {
+    id: '5',
+    text: 'Should be ready by tomorrow. I\'ll send you the demo link!',
+    timestamp: new Date(Date.now() - 600000).toISOString(), // 10 minutes ago
+    userId: 'dev1',
+  },
+];
 
 export const ChatScreen = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(SAMPLE_MESSAGES);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const appState = useRef(AppState.currentState);
@@ -45,9 +80,22 @@ export const ChatScreen = () => {
 
   const loadMessages = async () => {
     setLoading(true);
-    const fetchedMessages = await fetchMessages();
-    setMessages(fetchedMessages);
-    setLoading(false);
+    try {
+      const fetchedMessages = await fetchMessages();
+      if (fetchedMessages && fetchedMessages.length > 0) {
+        setMessages(fetchedMessages);
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
+      // Keep using sample data if API fails
+    } finally {
+      setLoading(false);
+    }
+    
+    // Scroll to bottom after loading messages
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: false });
+    }, 200);
   };
 
   const handleNewMessage = (message: Message) => {
@@ -67,23 +115,56 @@ export const ChatScreen = () => {
   const handleSendMessage = () => {
     if (newMessage.trim() === '') return;
     
-    // Send via Socket.IO
-    sendChatMessage(newMessage, currentUserId);
-    setNewMessage('');
+    try {
+      // Send via Socket.IO
+      sendChatMessage(newMessage, currentUserId);
+      
+      // Add message locally in case Socket.IO fails
+      const newMsg: Message = {
+        id: `local_${Date.now()}`,
+        text: newMessage,
+        timestamp: new Date().toISOString(),
+        userId: currentUserId
+      };
+      
+      setMessages(prevMessages => [...prevMessages, newMsg]);
+      setNewMessage('');
+      
+      // Scroll to bottom
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      Alert.alert('Error', 'Failed to send message');
+    }
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.keyboardAvoidingView}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={90}
+    <LinearGradient 
+      colors={['#212B40', '#0F172A']} 
+      style={styles.container}
+      start={{x: 0, y: 0}}
+      end={{x: 1, y: 1}}
     >
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar style="light" />
-        
-        <View style={styles.container}>
-          <Text style={styles.header}>Daily Hustle Chat</Text>
-          
+      <StatusBar style="light" />
+      
+      <View style={styles.headerContainer}>
+        <Ionicons name="chatbubbles" size={30} color="#FF6B6B" />
+        <Text style={styles.header}>Daily Hustle Chat</Text>
+      </View>
+      
+      <KeyboardAvoidingView 
+        style={styles.chatContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={90}
+      >
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <Ionicons name="chatbubbles-outline" size={50} color="#374151" style={styles.loadingIcon} />
+            <Text style={styles.loadingText}>Loading chat history...</Text>
+          </View>
+        ) : (
           <FlatList
             ref={flatListRef}
             data={messages}
@@ -97,56 +178,80 @@ export const ChatScreen = () => {
             style={styles.messageList}
             contentContainerStyle={styles.messageListContent}
             ListEmptyComponent={
-              loading ? null : (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="chatbubbles-outline" size={50} color="#374151" />
                 <Text style={styles.emptyText}>
-                  No messages yet. Start the conversation!
+                  No messages yet
                 </Text>
-              )
+                <Text style={styles.emptySubText}>
+                  Be the first one to start the conversation!
+                </Text>
+              </View>
             }
-            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
           />
-          
-          <View style={styles.inputContainer}>
-            <Input
-              value={newMessage}
-              onChangeText={setNewMessage}
-              placeholder="Type your message..."
-              containerStyle={styles.textInput}
-              multiline
-            />
-            <Button
-              title="Send"
-              onPress={handleSendMessage}
-              type="primary"
-              style={styles.sendButton}
-            />
-          </View>
+        )}
+        
+        <View style={styles.inputContainer}>
+          <Input
+            value={newMessage}
+            onChangeText={setNewMessage}
+            placeholder="Type your message..."
+            containerStyle={styles.textInput}
+            multiline
+          />
+          <TouchableOpacity 
+            style={styles.sendButton} 
+            onPress={handleSendMessage}
+            disabled={newMessage.trim() === ''}
+          >
+            <LinearGradient
+              colors={['#FF6B6B', '#FF8E53']}
+              style={styles.sendButtonGradient}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 0}}
+            >
+              <Ionicons name="send" size={20} color="white" />
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
-  keyboardAvoidingView: {
-    flex: 1,
-    backgroundColor: '#111827',
-  },
-  safeArea: {
-    flex: 1,
-  },
   container: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingBottom: 8,
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 20,
+    paddingBottom: 16,
   },
   header: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#22C55E',
-    marginTop: 8,
-    marginBottom: 24,
-    textAlign: 'center',
+    color: '#FF6B6B',
+    marginLeft: 10,
+  },
+  chatContainer: {
+    flex: 1,
+    padding: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingIcon: {
+    marginBottom: 16,
+  },
+  loadingText: {
+    color: '#CBD5E1',
+    fontSize: 16,
   },
   messageList: {
     flex: 1,
@@ -154,19 +259,40 @@ const styles = StyleSheet.create({
   messageListContent: {
     paddingBottom: 16,
   },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    marginTop: 60,
+    marginBottom: 60,
+  },
   emptyText: {
+    color: '#CBD5E1',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 20,
+  },
+  emptySubText: {
     color: '#9CA3AF',
+    fontSize: 14,
+    marginTop: 8,
     textAlign: 'center',
-    marginTop: 32,
-    fontSize: 16,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    backgroundColor: '#1F2937',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 12,
     padding: 12,
     marginTop: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
   },
   textInput: {
     flex: 1,
@@ -174,7 +300,14 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   sendButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  sendButtonGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 }); 

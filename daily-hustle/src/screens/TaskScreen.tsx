@@ -1,23 +1,64 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Alert, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Ionicons } from '@expo/vector-icons';
 import { Task } from '../types';
 import { fetchTasks, addTask, updateTaskStatus, deleteTask } from '../api/api';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { TaskCard } from '../components/TaskCard';
 import { checkTasksForNotifications } from '../utils/notifications';
+import { LinearGradient } from '../utils/GradientWrapper';
+
+// Sample tasks for immediate display
+const SAMPLE_TASKS: Task[] = [
+  { 
+    id: '1', 
+    title: 'Complete Daily Hustle app', 
+    status: 'Todo', 
+    dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), 
+    userId: 'dev1' 
+  },
+  { 
+    id: '2', 
+    title: 'Fix styling issues', 
+    status: 'Done', 
+    dueDate: '', 
+    userId: 'dev1' 
+  },
+  { 
+    id: '3', 
+    title: 'Add sample data', 
+    status: 'Todo', 
+    dueDate: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), 
+    userId: 'dev1' 
+  },
+  { 
+    id: '4', 
+    title: 'Test app functionality', 
+    status: 'Todo', 
+    dueDate: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(), 
+    userId: 'dev1' 
+  },
+  { 
+    id: '5', 
+    title: 'Deploy app to Expo', 
+    status: 'Todo', 
+    dueDate: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(), 
+    userId: 'dev1' 
+  },
+];
 
 export const TaskScreen = () => {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task[]>(SAMPLE_TASKS);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Fixed infinite loading by removing tasks from dependency array
   useEffect(() => {
     loadTasks();
     
@@ -27,13 +68,21 @@ export const TaskScreen = () => {
     }, 60000);
     
     return () => clearInterval(intervalId);
-  }, [tasks]);
+  }, []); // Removed tasks dependency to prevent infinite reloading
 
   const loadTasks = async () => {
     setLoading(true);
-    const fetchedTasks = await fetchTasks();
-    setTasks(fetchedTasks);
-    setLoading(false);
+    try {
+      const fetchedTasks = await fetchTasks();
+      if (fetchedTasks && fetchedTasks.length > 0) {
+        setTasks(fetchedTasks);
+      }
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+      // Keep using sample data if API fails
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRefresh = async () => {
@@ -51,46 +100,76 @@ export const TaskScreen = () => {
     const dueDate = newTaskDueDate ? newTaskDueDate.toISOString() : '';
     
     setLoading(true);
-    const result = await addTask({
-      title: newTaskTitle,
-      dueDate,
-      userId: 'dev1',
-    });
-    
-    if (result) {
-      setTasks([...tasks, result]);
-      setNewTaskTitle('');
-      setNewTaskDueDate(null);
-    } else {
+    try {
+      const result = await addTask({
+        title: newTaskTitle,
+        dueDate,
+        userId: 'dev1',
+      });
+      
+      if (result) {
+        setTasks([...tasks, result]);
+        setNewTaskTitle('');
+        setNewTaskDueDate(null);
+      } else {
+        // If API fails, add a local task with random ID
+        const localTask: Task = {
+          id: `local_${Date.now()}`,
+          title: newTaskTitle,
+          dueDate,
+          status: 'Todo',
+          userId: 'dev1',
+        };
+        setTasks([...tasks, localTask]);
+        setNewTaskTitle('');
+        setNewTaskDueDate(null);
+      }
+    } catch (error) {
+      // Handle error case
       Alert.alert('Error', 'Failed to add task');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleToggleStatus = async (id: string, newStatus: 'Todo' | 'Done') => {
     setLoading(true);
-    const result = await updateTaskStatus(id, newStatus);
-    
-    if (result) {
-      setTasks(tasks.map(task => 
-        task.id === id ? { ...task, status: newStatus } : task
-      ));
-    } else {
+    try {
+      const result = await updateTaskStatus(id, newStatus);
+      
+      if (result) {
+        setTasks(tasks.map(task => 
+          task.id === id ? { ...task, status: newStatus } : task
+        ));
+      } else {
+        // Handle local update if API fails
+        setTasks(tasks.map(task => 
+          task.id === id ? { ...task, status: newStatus } : task
+        ));
+      }
+    } catch (error) {
       Alert.alert('Error', 'Failed to update task status');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleDeleteTask = async (id: string) => {
     setLoading(true);
-    const success = await deleteTask(id);
-    
-    if (success) {
+    try {
+      const success = await deleteTask(id);
+      
+      if (success || id.startsWith('local_')) {
+        setTasks(tasks.filter(task => task.id !== id));
+      } else {
+        Alert.alert('Error', 'Failed to delete task');
+      }
+    } catch (error) {
+      // Handle local delete if API fails
       setTasks(tasks.filter(task => task.id !== id));
-    } else {
-      Alert.alert('Error', 'Failed to delete task');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
@@ -111,25 +190,38 @@ export const TaskScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="light" />
-      
-      <View style={styles.container}>
-        <Text style={styles.header}>Task Manager</Text>
+    <View style={{ flex: 1 }}>
+      <LinearGradient
+        colors={['#1E293B', '#0F172A']}
+        style={styles.container}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <StatusBar style="light" />
+        
+        <View style={styles.header}>
+          <Ionicons name="checkmark-done-circle" size={30} color="#FF6B6B" />
+          <Text style={styles.headerText}>Task Manager</Text>
+        </View>
         
         <View style={styles.inputContainer}>
+          <Text style={styles.inputTitle}>Create New Task</Text>
           <Input
             value={newTaskTitle}
             onChangeText={setNewTaskTitle}
-            placeholder="Enter new task..."
+            placeholder="What do you need to hustle on?"
+            containerStyle={styles.titleInput}
           />
           
           <View style={styles.datePickerRow}>
-            <Text style={styles.dueDateText}>
-              Due Date: {newTaskDueDate ? formatDate(newTaskDueDate) : 'None'}
-            </Text>
+            <View style={styles.dateTextContainer}>
+              <Ionicons name="calendar" size={18} color="#CBD5E1" style={styles.dateIcon} />
+              <Text style={styles.dueDateText}>
+                {newTaskDueDate ? formatDate(newTaskDueDate) : 'No due date'}
+              </Text>
+            </View>
             <Button
-              title="Set Date"
+              title="Set Due Date"
               onPress={() => setShowDatePicker(true)}
               type="secondary"
               style={styles.dateButton}
@@ -145,19 +237,33 @@ export const TaskScreen = () => {
             />
           )}
           
-          <Button
-            title="Add Task"
-            onPress={handleAddTask}
-            loading={loading}
-            style={styles.addButton}
-          />
+          <LinearGradient
+            colors={['#FF6B6B', '#FF8E53']}
+            style={[styles.addButtonGradient, { borderRadius: 8 }]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Button
+              title="Add Task"
+              onPress={handleAddTask}
+              loading={loading}
+              style={styles.addButton}
+              textStyle={styles.addButtonText}
+            />
+          </LinearGradient>
         </View>
         
         <View style={styles.taskListContainer}>
-          <Text style={styles.sectionTitle}>Your Tasks</Text>
+          <View style={styles.listHeader}>
+            <Ionicons name="list" size={22} color="#FF6B6B" />
+            <Text style={styles.sectionTitle}>Your Tasks</Text>
+          </View>
           
           {loading && !refreshing ? (
-            <ActivityIndicator size="large" color="#22C55E" style={styles.loader} />
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="large" color="#FF6B6B" style={styles.loader} />
+              <Text style={styles.loaderText}>Loading your tasks...</Text>
+            </View>
           ) : (
             <FlatList
               data={tasks}
@@ -174,47 +280,77 @@ export const TaskScreen = () => {
               style={styles.taskList}
               contentContainerStyle={styles.taskListContent}
               ListEmptyComponent={
-                <Text style={styles.emptyText}>
-                  No tasks yet. Add some above!
-                </Text>
+                <View style={styles.emptyContainer}>
+                  <Ionicons name="checkbox-outline" size={50} color="#374151" />
+                  <Text style={styles.emptyText}>
+                    Your task list is empty
+                  </Text>
+                  <Text style={styles.emptySubText}>
+                    Add your first task to start hustling!
+                  </Text>
+                </View>
               }
             />
           )}
         </View>
-      </View>
-    </SafeAreaView>
+      </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#111827',
-  },
   container: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    padding: 16,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  headerText: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#22C55E',
-    marginTop: 8,
-    marginBottom: 24,
-    textAlign: 'center',
+    color: '#FF6B6B',
+    marginLeft: 10,
   },
   inputContainer: {
-    backgroundColor: '#1F2937',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 24,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  inputTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  titleInput: {
+    marginBottom: 16,
   },
   datePickerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    padding: 10,
+  },
+  dateTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dateIcon: {
+    marginRight: 8,
   },
   dueDateText: {
     color: '#F9FAFB',
@@ -223,21 +359,46 @@ const styles = StyleSheet.create({
   dateButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#FF6B6B',
+  },
+  addButtonGradient: {
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   addButton: {
     width: '100%',
+    backgroundColor: 'transparent',
+  },
+  addButtonText: {
+    fontWeight: 'bold',
   },
   taskListContainer: {
     flex: 1,
+  },
+  listHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#F9FAFB',
-    marginBottom: 16,
+    marginLeft: 8,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   loader: {
-    marginTop: 32,
+    marginBottom: 16,
+  },
+  loaderText: {
+    color: '#CBD5E1',
+    fontSize: 16,
   },
   taskList: {
     flex: 1,
@@ -245,10 +406,25 @@ const styles = StyleSheet.create({
   taskListContent: {
     paddingBottom: 16,
   },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    marginTop: 20,
+  },
   emptyText: {
+    color: '#CBD5E1',
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 20,
+  },
+  emptySubText: {
     color: '#9CA3AF',
     textAlign: 'center',
-    marginTop: 32,
-    fontSize: 16,
+    fontSize: 14,
+    marginTop: 8,
   },
 }); 

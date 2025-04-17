@@ -13,9 +13,37 @@ export interface Message {
   userId: string;
 }
 
+export interface Project {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  technologies: string[];
+  githubUrl?: string;
+  liveUrl?: string;
+  featured: boolean;
+}
+
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  color: string;
+}
+
+export interface Skill {
+  name: string;
+  level: number; // 1-5
+  icon: string;
+  category: 'frontend' | 'backend' | 'mobile' | 'other';
+}
+
 export type RootStackParamList = {
   Home: undefined;
-  Task: undefined;
-  Chat: undefined;
-  About: undefined;
+  Notes: undefined;
+  Tasks: undefined;
+  Settings: undefined;
 }; 
