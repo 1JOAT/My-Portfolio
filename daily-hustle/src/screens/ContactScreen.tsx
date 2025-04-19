@@ -1,49 +1,16 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking, Platform } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/GradientWrapper';
-import { Input } from '../components/Input';
-import { Button } from '../components/Button';
-import { sendTestNotification } from '../utils/notifications';
+import { useTheme } from '../utils/ThemeContext';
 
 export const ContactScreen = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { theme, settings } = useTheme();
 
-  const handleSendMessage = async () => {
-    if (!name.trim() || !email.trim() || !message.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-    
-    if (!email.includes('@') || !email.includes('.')) {
-      Alert.alert('Error', 'Please enter a valid email address');
-      return;
-    }
-    
-    setLoading(true);
-    
-    // Simulate sending a message
-    setTimeout(() => {
-      setLoading(false);
-      Alert.alert(
-        'Message Sent!',
-        'Thank you for your message. I will get back to you soon.',
-        [
-          { 
-            text: 'OK', 
-            onPress: () => {
-              setName('');
-              setEmail('');
-              setMessage('');
-            }
-          }
-        ]
-      );
-    }, 1500);
+  // Calculate spacing based on compact mode
+  const getSpacing = (size: number) => {
+    return settings.compactMode ? size * 0.8 : size;
   };
 
   const handleSocialLink = (platform: string) => {
@@ -51,16 +18,16 @@ export const ContactScreen = () => {
     
     switch (platform) {
       case 'github':
-        url = 'https://github.com/yourusername';
-        break;
-      case 'linkedin':
-        url = 'https://linkedin.com/in/yourusername';
+        url = 'https://github.com/1JOAT';
         break;
       case 'twitter':
-        url = 'https://twitter.com/yourusername';
+        url = 'https://x.com/1J0AT';
+        break;
+      case 'linkedin':
+        url = 'https://www.linkedin.com/in/praise-oke-673a7823a/';
         break;
       case 'instagram':
-        url = 'https://instagram.com/yourusername';
+        url = 'https://instagram.com/uniquejoat';
         break;
     }
     
@@ -69,158 +36,207 @@ export const ContactScreen = () => {
     }
   };
 
-  const handleTestNotification = async () => {
-    try {
-      await sendTestNotification('Test Notification', 'This is a test notification from the Contact screen!');
-      Alert.alert('Notification Sent!', 'Check your notification panel to see the test message.');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to send notification');
-    }
-  };
-
   const handleEmailPress = () => {
-    Linking.openURL('mailto:your.email@example.com');
+    Linking.openURL('mailto:praiseoke215@gmail.com');
   };
 
   const handlePhonePress = () => {
-    Linking.openURL('tel:+1234567890');
+    Linking.openURL('tel:+2348125556472');
   };
 
   return (
     <LinearGradient
-      colors={['#121638', '#2C3E50']}
+      colors={[theme.colors.background, theme.colors.card]}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
-      <StatusBar style="light" />
+      <StatusBar style={theme.dark ? "light" : "dark"} />
       
       <ScrollView 
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { padding: getSpacing(16) }]}
       >
         <View style={styles.header}>
-          <Ionicons name="mail" size={30} color="#FF6B6B" />
-          <Text style={styles.headerText}>Get In Touch</Text>
+          <Ionicons name="person-circle" size={32} color={theme.colors.primary} />
+          <Text style={[styles.headerText, { color: theme.colors.primary }]}>Contact Me</Text>
         </View>
+
+        {/* Profile Section */}
+        <View style={[
+          styles.profileContainer, 
+          { 
+            backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.03)',
+            shadowColor: theme.colors.shadow,
+            borderColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+          }
+        ]}>
+          <View style={styles.profileHeader}>
+            <View style={[styles.profileAvatar, { backgroundColor: theme.colors.primary }]}>
+              <Text style={styles.profileInitials}>PO</Text>
+            </View>
+            <View style={styles.profileInfo}>
+              <Text style={[styles.profileName, { color: theme.colors.text }]}>Praise Oke</Text>
+              <Text style={[styles.profileTitle, { color: theme.colors.subtext }]}>Software Developer</Text>
+            </View>
+          </View>
+          
+          <View style={[styles.profileDivider, { backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)' }]} />
+          
+          <Text style={[styles.profileBio, { color: theme.colors.text }]}>
+            Passionate Software developer. Creating beautiful, functional apps and websites for startups and enterprise clients.
+          </Text>
+        </View>
+        
+        <Text style={[styles.sectionTitle, { color: theme.colors.text, marginTop: getSpacing(24) }]}>Connect With Me</Text>
 
         <View style={styles.socialContainer}>
           <TouchableOpacity 
-            style={styles.socialButton}
+            style={[
+              styles.socialButton, 
+              { 
+                backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                shadowColor: theme.colors.shadow
+              }
+            ]}
             onPress={() => handleSocialLink('github')}
           >
-            <Ionicons name="logo-github" size={28} color="#F9FAFB" />
+            <Ionicons name="logo-github" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={styles.socialButton}
+            style={[
+              styles.socialButton, 
+              { 
+                backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                shadowColor: theme.colors.shadow
+              }
+            ]}
             onPress={() => handleSocialLink('linkedin')}
           >
-            <Ionicons name="logo-linkedin" size={28} color="#F9FAFB" />
+            <Ionicons name="logo-linkedin" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={styles.socialButton}
+            style={[
+              styles.socialButton, 
+              { 
+                backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                shadowColor: theme.colors.shadow
+              }
+            ]}
             onPress={() => handleSocialLink('twitter')}
           >
-            <Ionicons name="logo-twitter" size={28} color="#F9FAFB" />
+            <Ionicons name="logo-twitter" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={styles.socialButton}
+            style={[
+              styles.socialButton, 
+              { 
+                backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                shadowColor: theme.colors.shadow
+              }
+            ]}
             onPress={() => handleSocialLink('instagram')}
           >
-            <Ionicons name="logo-instagram" size={28} color="#F9FAFB" />
+            <Ionicons name="logo-instagram" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
         </View>
         
-        <View style={styles.contactInfoContainer}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text, marginTop: getSpacing(16) }]}>Contact Details</Text>
+        
+        <View style={[
+          styles.contactInfoContainer, 
+          { 
+            backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.03)',
+            shadowColor: theme.colors.shadow,
+            borderColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+          }
+        ]}>
           <TouchableOpacity style={styles.contactItem} onPress={handleEmailPress}>
-            <Ionicons name="mail" size={22} color="#FF6B6B" style={styles.contactIcon} />
-            <Text style={styles.contactText}>your.email@example.com</Text>
+            <View style={[styles.contactIconContainer, { backgroundColor: theme.colors.primary + '20' }]}>
+              <Ionicons name="mail" size={22} color={theme.colors.primary} />
+            </View>
+            <View style={styles.contactTextContainer}>
+              <Text style={[styles.contactLabel, { color: theme.colors.subtext }]}>Email</Text>
+              <Text style={[styles.contactText, { color: theme.colors.text }]}>praiseoke215@gmail.com</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.subtext} />
           </TouchableOpacity>
+          
+          <View style={[styles.itemDivider, { backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)' }]} />
           
           <TouchableOpacity style={styles.contactItem} onPress={handlePhonePress}>
-            <Ionicons name="call" size={22} color="#FF6B6B" style={styles.contactIcon} />
-            <Text style={styles.contactText}>+1 (234) 567-890</Text>
+            <View style={[styles.contactIconContainer, { backgroundColor: theme.colors.primary + '20' }]}>
+              <Ionicons name="call" size={22} color={theme.colors.primary} />
+            </View>
+            <View style={styles.contactTextContainer}>
+              <Text style={[styles.contactLabel, { color: theme.colors.subtext }]}>Phone</Text>
+              <Text style={[styles.contactText, { color: theme.colors.text }]}>+234 8125556472</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.subtext} />
           </TouchableOpacity>
           
-          <View style={styles.contactItem}>
-            <Ionicons name="location" size={22} color="#FF6B6B" style={styles.contactIcon} />
-            <Text style={styles.contactText}>New York, NY, USA</Text>
-          </View>
+          <View style={[styles.itemDivider, { backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)' }]} />
+          
+          <TouchableOpacity style={styles.contactItem} onPress={() => handleSocialLink('github')}>
+            <View style={[styles.contactIconContainer, { backgroundColor: theme.colors.primary + '20' }]}>
+              <Ionicons name="logo-github" size={22} color={theme.colors.primary} />
+            </View>
+            <View style={styles.contactTextContainer}>
+              <Text style={[styles.contactLabel, { color: theme.colors.subtext }]}>GitHub</Text>
+              <Text style={[styles.contactText, { color: theme.colors.text }]}>@1JOAT</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.subtext} />
+          </TouchableOpacity>
+          
+          <View style={[styles.itemDivider, { backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)' }]} />
+
+          <TouchableOpacity style={styles.contactItem} onPress={() => handleSocialLink('linkedin')}>
+            <View style={[styles.contactIconContainer, { backgroundColor: theme.colors.primary + '20' }]}>
+              <Ionicons name="logo-linkedin" size={22} color={theme.colors.primary} />
+            </View>
+            <View style={styles.contactTextContainer}>
+              <Text style={[styles.contactLabel, { color: theme.colors.subtext }]}>LinkedIn</Text>
+              <Text style={[styles.contactText, { color: theme.colors.text }]}>Praise Oke</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.subtext} />
+          </TouchableOpacity>
+
+          <View style={[styles.itemDivider, { backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)' }]} />
+
+
+          
+          <TouchableOpacity style={styles.contactItem} onPress={() => handleSocialLink('twitter')}>
+            <View style={[styles.contactIconContainer, { backgroundColor: theme.colors.primary + '20' }]}>
+              <Ionicons name="logo-twitter" size={22} color={theme.colors.primary} />
+            </View>
+            <View style={styles.contactTextContainer}>
+              <Text style={[styles.contactLabel, { color: theme.colors.subtext }]}>Twitter</Text>
+              <Text style={[styles.contactText, { color: theme.colors.text }]}>@1J0AT</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.subtext} />
+          </TouchableOpacity>
+
         </View>
         
-        <View style={styles.formContainer}>
-          <Text style={styles.formTitle}>Send a Message</Text>
-          
-          <View style={styles.inputWithIcon}>
-            <Ionicons name="person" size={20} color="#94A3B8" style={styles.inputIcon} />
-            <Input
-              label="Your Name"
-              value={name}
-              onChangeText={setName}
-              placeholder="Enter your name"
-              containerStyle={styles.input}
-            />
-          </View>
-          
-          <View style={styles.inputWithIcon}>
-            <Ionicons name="mail" size={20} color="#94A3B8" style={styles.inputIcon} />
-            <Input
-              label="Email Address"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Enter your email"
-              containerStyle={styles.input}
-            />
-          </View>
-          
-          <View style={styles.inputWithIcon}>
-            <Ionicons name="chatbubble" size={20} color="#94A3B8" style={styles.inputIcon} />
-            <Input
-              label="Message"
-              value={message}
-              onChangeText={setMessage}
-              placeholder="Type your message here"
-              multiline
-              numberOfLines={5}
-              containerStyle={styles.textArea}
-              inputStyle={styles.textAreaInput}
-            />
-          </View>
-          
-          <LinearGradient
-            colors={['#FF6B6B', '#FF8E53']}
-            style={styles.submitButtonGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            <Button
-              title="Send Message"
-              onPress={handleSendMessage}
-              loading={loading}
-              style={styles.submitButton}
-              textStyle={styles.submitButtonText}
-            />
-          </LinearGradient>
-        </View>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text, marginTop: getSpacing(16) }]}>Location</Text>
         
-        <View style={styles.notificationDemo}>
-          <Text style={styles.demoTitle}>Try Notification Demo</Text>
-          <Text style={styles.demoText}>
-            Click the button below to send a test notification to your device.
-          </Text>
-          <View style={styles.demoButtonWrapper}>
-            <Ionicons name="notifications" size={20} color="#FF6B6B" style={styles.demoButtonIcon} />
-            <Button
-              title="Send Test Notification"
-              onPress={handleTestNotification}
-              type="secondary"
-              style={styles.demoButton}
-            />
+        <View style={[
+          styles.locationContainer, 
+          { 
+            backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.03)',
+            shadowColor: theme.colors.shadow,
+            borderColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+          }
+        ]}>
+          <View style={styles.locationHeader}>
+            <Ionicons name="location" size={24} color={theme.colors.primary} style={styles.locationIcon} />
+            <Text style={[styles.locationText, { color: theme.colors.text }]}>Nigeria</Text>
           </View>
+          <Text style={[styles.locationDetails, { color: theme.colors.subtext }]}>Available for remote work worldwide</Text>
         </View>
       </ScrollView>
     </LinearGradient>
@@ -235,127 +251,145 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
     paddingBottom: 40,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-    marginBottom: 20,
+    marginVertical: 16,
   },
   headerText: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#FF6B6B',
     marginLeft: 10,
+  },
+  profileContainer: {
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+  },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  profileAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInitials: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  profileInfo: {
+    marginLeft: 16,
+  },
+  profileName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  profileTitle: {
+    fontSize: 14,
+    marginTop: 4,
+  },
+  profileDivider: {
+    height: 1,
+    marginVertical: 16,
+  },
+  profileBio: {
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
   },
   socialContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     marginBottom: 24,
   },
   socialButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   contactInfoContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
   },
   contactItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14,
+    padding: 16,
   },
-  contactIcon: {
+  contactIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 12,
   },
+  contactTextContainer: {
+    flex: 1,
+  },
+  contactLabel: {
+    fontSize: 12,
+  },
   contactText: {
-    color: '#F9FAFB',
     fontSize: 16,
+    marginTop: 2,
   },
-  formContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-  },
-  formTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#F9FAFB',
-    marginBottom: 16,
-  },
-  inputWithIcon: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 0,
-  },
-  inputIcon: {
-    marginTop: 38,
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    marginBottom: 16,
-  },
-  textArea: {
-    flex: 1,
-    marginBottom: 20,
-  },
-  textAreaInput: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  submitButtonGradient: {
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  submitButton: {
+  itemDivider: {
+    height: 1,
     width: '100%',
-    backgroundColor: 'transparent',
   },
-  submitButtonText: {
-    fontWeight: 'bold',
-  },
-  notificationDemo: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 12,
+  locationContainer: {
+    borderRadius: 16,
     padding: 16,
-    alignItems: 'center',
+    marginBottom: 20,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
   },
-  demoTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#F9FAFB',
+  locationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  demoText: {
-    color: '#CBD5E1',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  demoButtonWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-  },
-  demoButtonIcon: {
+  locationIcon: {
     marginRight: 10,
   },
-  demoButton: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: '#FF6B6B',
+  locationText: {
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  locationDetails: {
+    fontSize: 14,
+    marginTop: 6,
+    marginLeft: 34,
   },
 }); 

@@ -4,6 +4,8 @@ export interface Task {
   status: 'Todo' | 'Done';
   dueDate: string;
   userId: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Message {
@@ -38,12 +40,13 @@ export interface Skill {
   name: string;
   level: number; // 1-5
   icon: string;
-  category: 'frontend' | 'backend' | 'mobile' | 'other';
+  category: 'frontend' | 'backend' | 'database' | 'mobile' | 'other';
 }
 
 export type RootStackParamList = {
   Home: undefined;
   Notes: undefined;
   Tasks: undefined;
+  Contact: undefined;
   Settings: undefined;
 }; 

@@ -1,75 +1,45 @@
-# Daily Hustle - React Native App
+# Daily Hustle
 
-A mobile app for freelancers to track tasks, chat in real-time, and receive push notifications.
+A sleek and modern productivity app built with React Native and Expo.
 
 ## Features
 
-- Task Management: Create, organize, and track your tasks
-- Real-time Chat: Communicate with team members instantly
-- Push Notifications: Get alerts for task deadlines and new messages
-- MongoDB Integration: All data is stored persistently on MongoDB Atlas
+- **Dynamic Theming**: Support for light mode, dark mode, and system preference
+- **Biometric Authentication**: Secure your data with fingerprint/face recognition
+- **Data Synchronization**: Sync your data across devices
+- **Customizable Settings**: Configure the app to suit your preferences
+- **Storage Management**: Easily manage and export your data
+- **Sleek UI**: Beautiful and intuitive user interface with smooth transitions
+- **Compact Mode**: Reduce visual spacing in the UI for a more dense view
+
+## Improvements
+
+Recent updates include:
+
+- **Theme System**: Completely redesigned theme system with proper light/dark mode support
+- **Fixed Toggles**: All toggles in the settings screen now work correctly
+- **Improved Data Management**: Data usage statistics now update correctly
+- **Enhanced UI**: More consistent and polished user interface
+- **Biometric Authentication**: Working biometric authentication with proper device compatibility checks
+- **Clear All Data**: Option to clear all app data including AsyncStorage
+- **Responsive UI**: UI elements correctly adapt to theme changes
+
+## Getting Started
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Start the app: `npm start`
 
 ## Tech Stack
 
-- React Native with TypeScript
-- Socket.IO for real-time communication
-- Expo Push Notifications
-- MongoDB Atlas (free tier)
-- Node.js/Express backend
-
-## Installation
-
-1. Clone this repository
-2. Install dependencies:
-
-```bash
-npm install
-```
-
-## MongoDB Atlas Setup
-
-1. Create a free MongoDB Atlas account at https://www.mongodb.com/cloud/atlas
-2. Create a new cluster and get your connection string
-3. Update the `.env` file with your MongoDB connection string:
-
-```
-MONGODB_URI=mongodb+srv://your-username:your-password@your-cluster.mongodb.net/daily-hustle
-```
-
-## Running the App
-
-1. Start the Express server:
-
-```bash
-node server.js
-```
-
-2. In a separate terminal, start the React Native app:
-
-```bash
-npm start
-```
-
-3. Scan the QR code with the Expo Go app on your mobile device
-
-## Deploying
-
-### Free Deployment Options
-
-1. Deploy the backend on a free service like Render or Railway
-2. Use Expo's free tier for app distribution
-3. Generate a free APK for Android:
-
-```bash
-expo build:android -t apk
-```
-
-## Customization
-
-1. Change the developer name in `src/screens/AboutScreen.tsx`
-2. Update the color scheme if desired
-3. Add your own MongoDB sample data
+- React Native
+- Expo
+- AsyncStorage
+- React Navigation
+- Expo Linear Gradient
+- Expo Local Authentication
+- Expo Notifications
 
 ## License
 
-This project is open source and available under the MIT License. 
+This project is licensed under the MIT License - see the LICENSE file for details. 

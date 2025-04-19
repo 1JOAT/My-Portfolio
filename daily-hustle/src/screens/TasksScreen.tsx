@@ -19,12 +19,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from '../utils/GradientWrapper';
 import { Task } from '../types';
-import { sendTestNotification } from '../utils/notifications';
+import { sendTestNotification} from '../utils/notifications';
+import { useTheme } from '../utils/ThemeContext';
 
 // Storage key
 const TASKS_STORAGE_KEY = '@dev_showcase_tasks';
 
 export const TasksScreen = () => {
+  const { theme, settings } = useTheme();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [currentTask, setCurrentTask] = useState<Task | null>(null);
@@ -32,13 +34,18 @@ export const TasksScreen = () => {
   const [taskDueDate, setTaskDueDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState<'all' | 'pending' | 'completed'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'Todo' | 'Done'>('all');
   const [refreshing, setRefreshing] = useState(false);
 
   // Load tasks from AsyncStorage on component mount
   useEffect(() => {
     loadTasks();
   }, []);
+
+  // Calculate spacing based on compact mode
+  const getSpacing = (size: number) => {
+    return settings.compactMode ? size * 0.8 : size;
+  };
 
   // Load tasks from AsyncStorage
   const loadTasks = async () => {
@@ -74,72 +81,129 @@ export const TasksScreen = () => {
 
   // Add a new task
   const handleAddTask = () => {
-    setCurrentTask(null);
     setTaskTitle('');
-    setTaskDueDate(new Date(Date.now() + 24 * 60 * 60 * 1000)); // Default to tomorrow
+    setTaskDueDate(new Date(Date.now() + 24 * 60 * 60 * 1000)); // Default due date to tomorrow
+    setCurrentTask(null);
     setModalVisible(true);
   };
 
-  // Save task
-  const handleSaveTask = () => {
-    if (taskTitle.trim() === '') {
+  // Save the task
+  const handleSaveTask = async () => {
+    if (!taskTitle.trim()) {
       Alert.alert('Error', 'Please enter a task title');
       return;
     }
 
+    console.log('Creating/saving task with title:', taskTitle);
     const now = new Date().toISOString();
-    let updatedTasks: Task[];
-
+    
     if (currentTask) {
       // Update existing task
-      updatedTasks = tasks.map(task =>
+      console.log('Updating existing task:', currentTask.id);
+      const updatedTasks = tasks.map(task =>
         task.id === currentTask.id
           ? {
               ...task,
               title: taskTitle,
               dueDate: taskDueDate ? taskDueDate.toISOString() : '',
+              updatedAt: now,
             }
           : task
       );
+      
+      setTasks(updatedTasks);
+      await saveTasks(updatedTasks);
+      
+      // Update or cancel reminder for this task
+      const updatedTask = updatedTasks.find(task => task.id === currentTask.id);
+      if (updatedTask) {
+        console.log('Task due date:', updatedTask.dueDate ? new Date(updatedTask.dueDate).toLocaleString() : 'None');
+        if (updatedTask.dueDate && updatedTask.status === 'Todo') {
+          console.log('Scheduling reminder for updated task');
+          // await scheduleTaskReminder(updatedTask);
+        } else {
+          console.log('Cancelling reminders for updated task');
+          // await cancelTaskReminders(currentTask.id);
+        }
+      }
     } else {
       // Create new task
+      console.log('Creating new task with due date:', taskDueDate ? taskDueDate.toLocaleString() : 'None');
       const newTask: Task = {
         id: Date.now().toString(),
         title: taskTitle,
         status: 'Todo',
         dueDate: taskDueDate ? taskDueDate.toISOString() : '',
-        userId: 'user1',
+        createdAt: now,
+        updatedAt: now,
+        userId: 'dev1',
       };
-      updatedTasks = [newTask, ...tasks];
+      
+      const updatedTasks = [...tasks, newTask];
+      setTasks(updatedTasks);
+      await saveTasks(updatedTasks);
+      
+      // Schedule reminder for this task if it has a due date
+      if (newTask.dueDate) {
+        console.log('Scheduling reminder for new task');
+        try {
+          // await scheduleTaskReminder(newTask);
+          console.log('Reminder scheduling completed');
+        } catch (error) {
+          console.error('Error scheduling reminder:', error);
+        }
+      } else {
+        console.log('No due date set, skipping reminder scheduling');
+      }
     }
-
-    setTasks(updatedTasks);
-    saveTasks(updatedTasks);
+    
     setModalVisible(false);
-
-    // Show notification for new task with due date
-    if (!currentTask && taskDueDate) {
-      sendTaskNotification(taskTitle);
-    }
   };
 
-  // Toggle task status
-  const handleToggleStatus = (id: string) => {
+  // Toggle task completion status
+  const toggleTaskStatus = async (id: string) => {
     const updatedTasks = tasks.map(task =>
       task.id === id
-        ? { ...task, status: task.status === 'Todo' ? 'Done' : 'Todo' }
+        ? {
+            ...task,
+            status: task.status === 'Todo' ? 'Done' : 'Todo',
+            updatedAt: new Date().toISOString(),
+          }
         : task
     );
-    const typedUpdatedTasks: Task[] = updatedTasks.map(task => ({
+    const typedUpdatedTasks = updatedTasks.map(task => ({
       ...task,
       status: task.status as 'Todo' | 'Done'
     }));
+    
     setTasks(typedUpdatedTasks);
-    saveTasks(typedUpdatedTasks);
+    await saveTasks(typedUpdatedTasks);
+    
+    // Handle the reminder based on task status
+    const task = typedUpdatedTasks.find(task => task.id === id);
+    if (task) {
+      if (task.status === 'Done') {
+        // await cancelTaskReminders(id);
+      } else if (task.dueDate) {
+        const typedTask: Task = {
+          ...task,
+          status: task.status as 'Todo' | 'Done'
+        };
+        // await scheduleTaskReminder(typedTask);
+      }
+    }
   };
 
-  // Delete task
-  const handleDeleteTask = (id: string) => {
+  // Edit a task
+  const handleEditTask = (task: Task) => {
+    setCurrentTask(task);
+    setTaskTitle(task.title);
+    setTaskDueDate(task.dueDate ? new Date(task.dueDate) : null);
+    setModalVisible(true);
+  };
+
+  // Delete a task
+  const handleDeleteTask = async (id: string) => {
     Alert.alert(
       'Delete Task',
       'Are you sure you want to delete this task?',
@@ -151,125 +215,129 @@ export const TasksScreen = () => {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
+            // Cancel any scheduled reminders for this task
+            // await cancelTaskReminders(id);
+            
             const updatedTasks = tasks.filter(task => task.id !== id);
             setTasks(updatedTasks);
-            saveTasks(updatedTasks);
+            await saveTasks(updatedTasks);
           },
         },
       ]
     );
   };
 
-  // Edit task
-  const handleEditTask = (task: Task) => {
-    setCurrentTask(task);
-    setTaskTitle(task.title);
-    setTaskDueDate(task.dueDate ? new Date(task.dueDate) : null);
-    setModalVisible(true);
-  };
-
-  // Handle date change
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      setTaskDueDate(selectedDate);
-    }
-  };
-
-  // Send notification for task
-  const sendTaskNotification = async (title: string) => {
-    try {
-      await sendTestNotification(`New Task: ${title}`, 'Tap to view your task details');
-    } catch (error) {
-      console.error('Failed to send notification', error);
-    }
-  };
-
   // Format date for display
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return 'No due date';
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
     
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    // Check if it's today or tomorrow
+    if (date.toDateString() === today.toDateString()) {
+      return `Today, ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return `Tomorrow, ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+    } else {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
   };
 
   // Check if a task is overdue
-  const isOverdue = (task: Task) => {
+  const isTaskOverdue = (task: Task) => {
     if (task.status === 'Done' || !task.dueDate) return false;
-    const now = new Date();
+    
     const dueDate = new Date(task.dueDate);
+    const now = new Date();
+    
     return dueDate < now;
   };
 
-  // Filter tasks based on the selected filter
+  // Filter tasks
   const filteredTasks = tasks.filter(task => {
-    if (filterType === 'all') return true;
-    if (filterType === 'pending') return task.status === 'Todo';
-    if (filterType === 'completed') return task.status === 'Done';
+    if (filterType === 'Todo') return task.status === 'Todo';
+    if (filterType === 'Done') return task.status === 'Done';
     return true;
   });
 
-  // Get counts
+  // Count tasks by status
   const todoCount = tasks.filter(task => task.status === 'Todo').length;
   const doneCount = tasks.filter(task => task.status === 'Done').length;
-  const overdueCount = tasks.filter(task => isOverdue(task)).length;
+  const overdueCount = tasks.filter(task => isTaskOverdue(task)).length;
 
   return (
     <LinearGradient
-      colors={['#121638', '#2C3E50']}
+      colors={[theme.colors.background, theme.colors.card]}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
-      <StatusBar style="light" />
+      <StatusBar style={theme.dark ? "light" : "dark"} />
       
       <View style={styles.header}>
-        <Ionicons name="checkmark-circle" size={28} color="#FF6B6B" />
-        <Text style={styles.headerText}>Tasks</Text>
+        <Ionicons name="checkmark-circle" size={28} color={theme.colors.primary} />
+        <Text style={[styles.headerText, { color: theme.colors.text }]}>Tasks</Text>
       </View>
       
-      <View style={styles.statsContainer}>
+      <View style={[
+        styles.statsContainer, 
+        { 
+          backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+          marginHorizontal: getSpacing(16),
+          marginBottom: getSpacing(16),
+          padding: getSpacing(16),
+        }
+      ]}>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{todoCount}</Text>
-          <Text style={styles.statLabel}>Pending</Text>
+          <Text style={[styles.statNumber, { color: theme.colors.primary }]}>{todoCount}</Text>
+          <Text style={[styles.statLabel, { color: theme.colors.subtext }]}>Todo</Text>
         </View>
         
-        <View style={styles.statDivider} />
+        <View style={[styles.statDivider, { backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)' }]} />
         
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{doneCount}</Text>
-          <Text style={styles.statLabel}>Completed</Text>
+          <Text style={[styles.statNumber, { color: theme.colors.primary }]}>{doneCount}</Text>
+          <Text style={[styles.statLabel, { color: theme.colors.subtext }]}>Done</Text>
         </View>
         
-        <View style={styles.statDivider} />
+        <View style={[styles.statDivider, { backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)' }]} />
         
         <View style={styles.statItem}>
-          <Text style={[styles.statNumber, overdueCount > 0 && styles.overdueText]}>
+          <Text style={[styles.statNumber, overdueCount > 0 && { color: theme.colors.error }]}>
             {overdueCount}
           </Text>
-          <Text style={styles.statLabel}>Overdue</Text>
+          <Text style={[styles.statLabel, { color: theme.colors.subtext }]}>Overdue</Text>
         </View>
       </View>
       
-      <View style={styles.filterContainer}>
+      <View style={[
+        styles.filterContainer, 
+        { 
+          marginHorizontal: getSpacing(16),
+          marginBottom: getSpacing(16),
+        }
+      ]}>
         <TouchableOpacity
           style={[
             styles.filterButton,
-            filterType === 'all' && styles.activeFilterButton,
+            filterType === 'all' && [styles.activeFilterButton, { backgroundColor: theme.colors.primary }]
           ]}
           onPress={() => setFilterType('all')}
         >
-          <Text
+          <Text 
             style={[
-              styles.filterButtonText,
-              filterType === 'all' && styles.activeFilterText,
+              styles.filterText, 
+              { color: theme.colors.subtext },
+              filterType === 'all' && styles.activeFilterText
             ]}
           >
             All
@@ -279,153 +347,153 @@ export const TasksScreen = () => {
         <TouchableOpacity
           style={[
             styles.filterButton,
-            filterType === 'pending' && styles.activeFilterButton,
+            filterType === 'Todo' && [styles.activeFilterButton, { backgroundColor: theme.colors.primary }]
           ]}
-          onPress={() => setFilterType('pending')}
+          onPress={() => setFilterType('Todo')}
         >
-          <Text
+          <Text 
             style={[
-              styles.filterButtonText,
-              filterType === 'pending' && styles.activeFilterText,
+              styles.filterText, 
+              { color: theme.colors.subtext },
+              filterType === 'Todo' && styles.activeFilterText
             ]}
           >
-            Pending
+            Todo
           </Text>
         </TouchableOpacity>
         
         <TouchableOpacity
           style={[
             styles.filterButton,
-            filterType === 'completed' && styles.activeFilterButton,
+            filterType === 'Done' && [styles.activeFilterButton, { backgroundColor: theme.colors.primary }]
           ]}
-          onPress={() => setFilterType('completed')}
+          onPress={() => setFilterType('Done')}
         >
-          <Text
+          <Text 
             style={[
-              styles.filterButtonText,
-              filterType === 'completed' && styles.activeFilterText,
+              styles.filterText, 
+              { color: theme.colors.subtext },
+              filterType === 'Done' && styles.activeFilterText
             ]}
           >
-            Completed
+            Done
           </Text>
         </TouchableOpacity>
       </View>
-      
+
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B6B" />
-          <Text style={styles.loadingText}>Loading tasks...</Text>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.text }]}>Loading tasks...</Text>
         </View>
       ) : (
         <FlatList
           data={filteredTasks}
-          keyExtractor={item => item.id}
+          keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={[
-              styles.taskCard,
-              item.status === 'Done' && styles.completedTaskCard,
-              isOverdue(item) && styles.overdueTaskCard,
-            ]}>
-              <TouchableOpacity
-                style={styles.taskStatusButton}
-                onPress={() => handleToggleStatus(item.id)}
-              >
-                <View style={[
-                  styles.checkCircle,
-                  item.status === 'Done' && styles.checkedCircle,
-                ]}>
-                  {item.status === 'Done' && (
-                    <Ionicons name="checkmark" size={16} color="white" />
-                  )}
-                </View>
-              </TouchableOpacity>
-              
-              <View style={styles.taskContent}>
-                <Text
-                  style={[
-                    styles.taskTitle,
-                    item.status === 'Done' && styles.completedTaskTitle,
-                  ]}
+            <View 
+              style={[
+                styles.taskCard,
+                { 
+                  backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                  marginBottom: getSpacing(12)
+                },
+                isTaskOverdue(item) && styles.overdueTaskCard
+              ]}
+            >
+              <View style={styles.taskHeader}>
+                <TouchableOpacity 
+                  style={styles.checkboxContainer}
+                  onPress={() => toggleTaskStatus(item.id)}
                 >
-                  {item.title}
-                </Text>
+                  <LinearGradient
+                    colors={item.status === 'Done' ? theme.colors.gradient.success : ['transparent', 'transparent']}
+                    style={[
+                      styles.checkbox,
+                      { 
+                        borderColor: theme.colors.primary,
+                        borderWidth: item.status === 'Done' ? 0 : 2
+                      }
+                    ]}
+                  >
+                    {item.status === 'Done' && (
+                      <Ionicons name="checkmark" size={16} color="white" />
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
                 
-                {item.dueDate && (
-                  <View style={styles.taskDueDateContainer}>
-                    <Ionicons
-                      name="time-outline"
-                      size={14}
-                      color={isOverdue(item) ? '#FF6B6B' : '#94A3B8'}
-                      style={styles.taskDueDateIcon}
-                    />
+                <View style={styles.taskDetails}>
+                  <Text 
+                    style={[
+                      styles.taskTitle,
+                      { color: theme.colors.text },
+                      item.status === 'Done' && styles.completedTaskTitle
+                    ]}
+                  >
+                    {item.title}
+                  </Text>
+                  
+                  {item.dueDate && (
                     <Text
                       style={[
-                        styles.taskDueDate,
-                        isOverdue(item) && styles.overdueDateText,
+                        styles.dueDate,
+                        { color: theme.colors.subtext },
+                        isTaskOverdue(item) && { color: theme.colors.error }
                       ]}
                     >
-                      {formatDate(item.dueDate)}
-                      {isOverdue(item) && ' (Overdue)'}
+                      <Ionicons 
+                        name="time-outline" 
+                        size={12} 
+                        color={isTaskOverdue(item) ? theme.colors.error : theme.colors.subtext} 
+                      /> {formatDate(item.dueDate)}
                     </Text>
-                  </View>
-                )}
-              </View>
-              
-              <View style={styles.taskActions}>
-                <TouchableOpacity
-                  style={styles.taskActionButton}
-                  onPress={() => handleEditTask(item)}
-                >
-                  <Ionicons name="create-outline" size={20} color="#94A3B8" />
-                </TouchableOpacity>
+                  )}
+                </View>
                 
-                <TouchableOpacity
-                  style={styles.taskActionButton}
-                  onPress={() => handleDeleteTask(item.id)}
-                >
-                  <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
-                </TouchableOpacity>
+                <View style={styles.taskActions}>
+                  <TouchableOpacity 
+                    style={styles.actionButton}
+                    onPress={() => handleEditTask(item)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="pencil" size={18} color={theme.colors.primary} />
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.actionButton}
+                    onPress={() => handleDeleteTask(item.id)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           )}
-          contentContainerStyle={styles.tasksList}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons
-                name="checkbox-outline"
-                size={60}
-                color="#CBD5E1"
-                style={styles.emptyIcon}
-              />
-              <Text style={styles.emptyText}>
-                {filterType === 'all'
-                  ? 'No tasks yet'
-                  : filterType === 'pending'
-                  ? 'No pending tasks'
-                  : 'No completed tasks'}
-              </Text>
-              <Text style={styles.emptySubText}>
-                {filterType === 'all'
-                  ? 'Tap the + button to create your first task'
-                  : filterType === 'pending'
-                  ? 'All your tasks are completed!'
-                  : 'You haven\'t completed any tasks yet'}
-              </Text>
-            </View>
-          }
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
+          contentContainerStyle={[styles.tasksList, { padding: getSpacing(16) }]}
+          showsVerticalScrollIndicator={false}
         />
       )}
       
-      <TouchableOpacity style={styles.addButton} onPress={handleAddTask}>
+      <TouchableOpacity 
+        style={[
+          styles.addButton, 
+          { 
+            bottom: getSpacing(16),
+            right: getSpacing(16),
+            width: getSpacing(56),
+            height: getSpacing(56),
+          }
+        ]} 
+        onPress={handleAddTask}
+      >
         <LinearGradient
-          colors={['#FF6B6B', '#FF8E53']}
+          colors={theme.colors.gradient.primary}
           style={styles.addButtonGradient}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
+          end={{ x: 1, y: 1 }}
         >
-          <Ionicons name="add" size={32} color="white" />
+          <Ionicons name="add" size={30} color="white" />
         </LinearGradient>
       </TouchableOpacity>
       
@@ -439,71 +507,86 @@ export const TasksScreen = () => {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalContainer}
         >
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
                 {currentTask ? 'Edit Task' : 'New Task'}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#FF6B6B" />
+                <Ionicons name="close" size={24} color={theme.colors.primary} />
               </TouchableOpacity>
             </View>
             
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                { 
+                  color: theme.colors.text,
+                  backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                  borderColor: theme.colors.border
+                }
+              ]}
               placeholder="What needs to be done?"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.colors.subtext}
               value={taskTitle}
               onChangeText={setTaskTitle}
               autoFocus
             />
             
-            <View style={styles.dueDateContainer}>
-              <Text style={styles.dueDateLabel}>Due Date</Text>
-              
-              <View style={styles.dueDateRow}>
-                <View style={styles.dueDateTextContainer}>
-                  <Ionicons name="calendar-outline" size={20} color="#94A3B8" style={styles.dueDateIcon} />
-                  <Text style={styles.dueDateText}>
-                    {taskDueDate ? formatDate(taskDueDate.toISOString()) : 'No due date'}
-                  </Text>
-                </View>
-                
+            <TouchableOpacity
+              style={[
+                styles.dateButton,
+                { 
+                  backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                  borderColor: theme.colors.border
+                }
+              ]}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
+              <Text style={[styles.dateButtonText, { color: theme.colors.text }]}>
+                {taskDueDate ? formatDate(taskDueDate.toISOString()) : 'Set due date'}
+              </Text>
+              {taskDueDate && (
                 <TouchableOpacity
-                  style={styles.datePickerButton}
-                  onPress={() => setShowDatePicker(true)}
+                  onPress={() => setTaskDueDate(null)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Text style={styles.datePickerButtonText}>
-                    {taskDueDate ? 'Change' : 'Set Date'}
-                  </Text>
+                  <Ionicons name="close-circle" size={20} color={theme.colors.subtext} />
                 </TouchableOpacity>
-              </View>
-              
-              {showDatePicker && (
-                <DateTimePicker
-                  value={taskDueDate || new Date()}
-                  mode="datetime"
-                  display="default"
-                  onChange={handleDateChange}
-                />
               )}
-            </View>
+            </TouchableOpacity>
             
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setModalVisible(false)}
+            {showDatePicker && (
+              <DateTimePicker
+                value={taskDueDate || new Date()}
+                mode="datetime"
+                display="default"
+                minimumDate={new Date()}
+                onChange={(event, selectedDate) => {
+                  setShowDatePicker(false);
+                  if (selectedDate) {
+                    const now = new Date();
+                    const validDate = selectedDate > now ? selectedDate : new Date(now.getTime() + 60 * 60 * 1000);
+                    setTaskDueDate(validDate);
+                  }
+                }}
+              />
+            )}
+            
+            <TouchableOpacity 
+              style={styles.saveButton}
+              onPress={handleSaveTask}
+            >
+              <LinearGradient
+                colors={theme.colors.gradient.primary}
+                style={styles.saveButtonGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={handleSaveTask}
-              >
-                <Text style={styles.saveButtonText}>Save</Text>
-              </TouchableOpacity>
-            </View>
+                <Text style={styles.saveButtonText}>Save Task</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -518,23 +601,17 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
+    padding: 20,
   },
   headerText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FF6B6B',
     marginLeft: 10,
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 12,
-    marginHorizontal: 16,
-    padding: 16,
-    marginBottom: 16,
   },
   statItem: {
     flex: 1,
@@ -543,40 +620,30 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: 'white',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: '#CBD5E1',
   },
   statDivider: {
     width: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     marginHorizontal: 10,
-  },
-  overdueText: {
-    color: '#FF6B6B',
   },
   filterContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginBottom: 16,
   },
   filterButton: {
+    flex: 1,
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    alignItems: 'center',
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginHorizontal: 4,
   },
   activeFilterButton: {
-    backgroundColor: '#FF6B6B',
   },
-  filterButtonText: {
-    color: '#CBD5E1',
+  filterText: {
     fontWeight: '600',
-    fontSize: 14,
   },
   activeFilterText: {
     color: 'white',
@@ -587,105 +654,62 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#CBD5E1',
-    marginTop: 12,
+    marginTop: 16,
     fontSize: 16,
   },
   tasksList: {
-    padding: 16,
-    paddingBottom: 100, // Extra padding for FAB
+    paddingTop: 0,
   },
   taskCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
-  },
-  completedTaskCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   overdueTaskCard: {
     borderLeftWidth: 3,
-    borderLeftColor: '#FF6B6B',
+    borderLeftColor: '#EF4444',
   },
-  taskStatusButton: {
+  taskHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkboxContainer: {
     marginRight: 12,
   },
-  checkCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  checkbox: {
+    width: 22,
+    height: 22,
     borderWidth: 2,
-    borderColor: '#94A3B8',
+    borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  checkedCircle: {
-    backgroundColor: '#22C55E',
-    borderColor: '#22C55E',
-  },
-  taskContent: {
+  taskDetails: {
     flex: 1,
   },
   taskTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
+    fontWeight: '500',
     marginBottom: 4,
   },
   completedTaskTitle: {
     textDecorationLine: 'line-through',
-    color: '#94A3B8',
+    opacity: 0.7,
   },
-  taskDueDateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  taskDueDateIcon: {
-    marginRight: 4,
-  },
-  taskDueDate: {
+  dueDate: {
     fontSize: 12,
-    color: '#94A3B8',
-  },
-  overdueDateText: {
-    color: '#FF6B6B',
   },
   taskActions: {
     flexDirection: 'row',
-  },
-  taskActionButton: {
-    paddingHorizontal: 8,
-  },
-  emptyContainer: {
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    marginTop: 20,
   },
-  emptyIcon: {
-    marginBottom: 16,
-  },
-  emptyText: {
-    color: '#CBD5E1',
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  emptySubText: {
-    color: '#94A3B8',
-    fontSize: 14,
-    textAlign: 'center',
+  actionButton: {
+    marginLeft: 12,
   },
   addButton: {
     position: 'absolute',
-    bottom: 20,
-    right: 20,
-    borderRadius: 30,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -693,9 +717,9 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   addButtonGradient: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: '100%',
+    height: '100%',
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -705,9 +729,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: '#1E293B',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 20,
   },
   modalHeader: {
@@ -719,78 +742,39 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: 'white',
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
+    borderRadius: 12,
+    borderWidth: 1,
     padding: 12,
-    marginBottom: 16,
-    color: 'white',
     fontSize: 16,
+    marginBottom: 16,
   },
-  dueDateContainer: {
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
     marginBottom: 20,
   },
-  dueDateLabel: {
+  dateButtonText: {
+    flex: 1,
+    marginLeft: 8,
     fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
-    marginBottom: 8,
-  },
-  dueDateRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    padding: 12,
-  },
-  dueDateTextContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  dueDateIcon: {
-    marginRight: 8,
-  },
-  dueDateText: {
-    color: 'white',
-    fontSize: 14,
-  },
-  datePickerButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 4,
-  },
-  datePickerButtonText: {
-    color: '#FF6B6B',
-    fontWeight: '600',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 8,
-  },
-  cancelButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    marginRight: 12,
-  },
-  cancelButtonText: {
-    color: '#94A3B8',
-    fontSize: 16,
-    fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: '#FF6B6B',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 12,
+  },
+  saveButtonGradient: {
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   saveButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
 }); 

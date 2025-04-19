@@ -1,27 +1,334 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from '../utils/GradientWrapper';
 import { Skill } from '../types';
 import { sendTestNotification } from '../utils/notifications';
+import { useTheme } from '../utils/ThemeContext';
 
 // Sample skills data
 const SKILLS: Skill[] = [
-  { name: 'React', level: 5, icon: 'logo-react', category: 'frontend' },
+  { name: 'HTML', level: 5, icon: 'code-slash', category: 'frontend' },
+  { name: 'CSS', level: 5, icon: 'color-palette', category: 'frontend' },
+  { name: 'JavaScript', level: 5, icon: 'logo-javascript', category: 'frontend' },
+  { name: 'React', level: 4, icon: 'logo-react', category: 'frontend' },
   { name: 'React Native', level: 4, icon: 'phone-portrait', category: 'mobile' },
-  { name: 'TypeScript', level: 4, icon: 'code-slash', category: 'frontend' },
   { name: 'Node.js', level: 4, icon: 'server', category: 'backend' },
-  { name: 'MongoDB', level: 3, icon: 'leaf', category: 'backend' },
-  { name: 'GraphQL', level: 3, icon: 'trending-up', category: 'backend' },
-  { name: 'UI/UX Design', level: 4, icon: 'color-palette', category: 'frontend' },
-  { name: 'AWS', level: 3, icon: 'cloud', category: 'other' },
+  { name: 'Express', level: 5, icon: 'flash', category: 'backend' },
+  { name: 'SCSS', level: 4, icon: 'color-filter', category: 'frontend' },
+  { name: 'TypeScript', level: 4, icon: 'code-slash', category: 'frontend' },
+  { name: 'Bootstrap', level: 4, icon: 'grid', category: 'frontend' },
+  { name: 'Material UI', level: 4, icon: 'albums', category: 'frontend' },
+  { name: 'Claude', level: 5, icon: 'diamond-outline', category: 'other' },
+  { name: 'Cursor', level: 5, icon: 'code', category: 'other' },
+  { name: 'Tailwind CSS', level: 4, icon: 'color-wand', category: 'frontend' },
   { name: 'Git', level: 4, icon: 'git-branch', category: 'other' },
+  { name: 'GitHub', level: 4, icon: 'logo-github', category: 'other' },
+  { name: 'PHP', level: 3, icon: 'code', category: 'backend' },
+  { name: 'Laravel', level: 3, icon: 'layers', category: 'backend' },
+  { name: 'Redis', level: 3, icon: 'cube', category: 'database' },
+  { name: 'MySQL', level: 4, icon: 'server', category: 'database' },
+  { name: 'PostgreSQL', level: 4, icon: 'server', category: 'database' },
+  { name: 'MongoDB', level: 5, icon: 'leaf', category: 'database' },
+  { name: 'Supabase', level: 5, icon: 'cube', category: 'database' },
+  { name: 'Socket.IO', level: 5, icon: 'flash', category: 'backend' },
+  { name: 'AWS', level: 3, icon: 'cloud', category: 'other' },
+
   { name: 'Redux', level: 4, icon: 'flash', category: 'frontend' },
-  { name: 'Jest', level: 3, icon: 'flask', category: 'other' },
-  { name: 'Firebase', level: 4, icon: 'flame', category: 'backend' },
 ];
+
+// SkillCard component
+const SkillCard = ({ skill }: { skill: Skill }) => {
+  const { theme } = useTheme();
+  
+  return (
+    <View style={[styles.skillCard, { backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }]}>
+      <Ionicons name={skill.icon as any} size={24} color={theme.colors.primary} style={styles.skillIcon} />
+      <Text style={[styles.skillName, { color: theme.colors.text }]}>{skill.name}</Text>
+      <View style={styles.levelContainer}>
+        {[1, 2, 3, 4, 5].map((level) => (
+          <View 
+            key={level}
+            style={[
+              styles.levelDot,
+              level <= skill.level ? 
+                [styles.activeLevelDot, { backgroundColor: theme.colors.primary }] : 
+                [styles.inactiveLevelDot, { backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)' }]
+            ]}
+          />
+        ))}
+      </View>
+    </View>
+  );
+};
+
+export const HomeScreen = () => {
+  const navigation = useNavigation();
+  const { theme, settings } = useTheme();
+  const [activeCategory, setActiveCategory] = useState<'all' | 'frontend' | 'backend' | 'database' | 'mobile' | 'other'>('all');
+
+  const filteredSkills = activeCategory === 'all' 
+    ? SKILLS 
+    : SKILLS.filter(skill => skill.category === activeCategory);
+
+  const handleNotificationDemo = async () => {
+    try {
+      await sendTestNotification('Test Notifications', 'This is a test notification from the Home screen!');
+      Alert.alert('Success', 'Test notification sent! Check your notification panel.');
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      Alert.alert('Error', 'Something went wrong');
+    }
+  };
+
+  // Calculate spacing based on compact mode
+  const getSpacing = (size: number) => {
+    return settings.compactMode ? size * 0.8 : size;
+  };
+
+  return (
+    <LinearGradient
+      colors={[theme.colors.background, theme.colors.card]}
+      style={styles.container}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      <StatusBar style={theme.dark ? "light" : "dark"} />
+      
+      <ScrollView 
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.contentContainer, 
+          { padding: getSpacing(16) }
+        ]}
+      >
+        <View style={[styles.profileSection, { marginBottom: getSpacing(24) }]}>
+          <LinearGradient
+            colors={[theme.colors.primary, theme.dark ? '#993D3D' : '#FF8F8F']}
+            style={styles.avatarGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Text style={styles.avatarText}>PO</Text>
+          </LinearGradient>
+          
+          <Text style={[styles.name, { color: theme.colors.text }]}>Praise Oke</Text>
+          <Text style={[styles.title, { color: theme.colors.subtext }]}>Software Developer</Text>
+          
+          <View style={styles.badgeContainer}>
+            <View style={[styles.badge, { backgroundColor: theme.colors.primary }]}>
+              <Text style={styles.badgeText}>Available for work</Text>
+            </View>
+          </View>
+        </View>
+        
+        <View style={[
+          styles.statsContainer, 
+          { 
+            backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+            marginBottom: getSpacing(24),
+            padding: getSpacing(16)
+          }
+        ]}>
+          <View style={styles.statItem}>
+            <Text style={[styles.statNumber, { color: theme.colors.primary }]}>3+</Text>
+            <Text style={[styles.statLabel, { color: theme.colors.subtext }]}>Years Exp.</Text>
+          </View>
+          
+          <View style={[styles.statDivider, { backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)' }]} />
+          
+            <View style={styles.statItem}>
+            <Text style={[styles.statNumber, { color: theme.colors.primary }]}>12+</Text>
+            <Text style={[styles.statLabel, { color: theme.colors.subtext }]}>Projects</Text>
+            </View>
+            
+          <View style={[styles.statDivider, { backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)' }]} />
+            
+            <View style={styles.statItem}>
+            <Text style={[styles.statNumber, { color: theme.colors.primary }]}>5+</Text>
+            <Text style={[styles.statLabel, { color: theme.colors.subtext }]}>Clients</Text>
+          </View>
+        </View>
+        
+        <View style={[
+          styles.skillsSection, 
+          { 
+            backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.03)',
+            marginBottom: getSpacing(24),
+            padding: getSpacing(16)
+          }
+        ]}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="code-slash" size={22} color={theme.colors.primary} />
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Skills</Text>
+          </View>
+          
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoryScroll}
+            contentContainerStyle={styles.categoryContainer}
+          >
+            <TouchableOpacity
+              style={[
+                styles.categoryButton,
+                { backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' },
+                activeCategory === 'all' && [styles.activeCategory, { backgroundColor: theme.colors.primary }]
+              ]}
+              onPress={() => setActiveCategory('all')}
+            >
+              <Text 
+                style={[
+                  styles.categoryText,
+                  { color: theme.colors.subtext },
+                  activeCategory === 'all' && styles.activeCategoryText
+                ]}
+              >
+                All
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.categoryButton,
+                { backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' },
+                activeCategory === 'frontend' && [styles.activeCategory, { backgroundColor: theme.colors.primary }]
+              ]}
+              onPress={() => setActiveCategory('frontend')}
+            >
+              <Text 
+                style={[
+                  styles.categoryText,
+                  { color: theme.colors.subtext },
+                  activeCategory === 'frontend' && styles.activeCategoryText
+                ]}
+              >
+                Frontend
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.categoryButton,
+                { backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' },
+                activeCategory === 'backend' && [styles.activeCategory, { backgroundColor: theme.colors.primary }]
+              ]}
+              onPress={() => setActiveCategory('backend')}
+            >
+              <Text 
+                style={[
+                  styles.categoryText,
+                  { color: theme.colors.subtext },
+                  activeCategory === 'backend' && styles.activeCategoryText
+                ]}
+              >
+                Backend
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.categoryButton,
+                { backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' },
+                activeCategory === 'database' && [styles.activeCategory, { backgroundColor: theme.colors.primary }]
+              ]}
+              onPress={() => setActiveCategory('database')}
+            >
+              <Text 
+                style={[
+                  styles.categoryText,
+                  { color: theme.colors.subtext },
+                  activeCategory === 'database' && styles.activeCategoryText
+                ]}
+              >
+                Database
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.categoryButton,
+                { backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' },
+                activeCategory === 'mobile' && [styles.activeCategory, { backgroundColor: theme.colors.primary }]
+              ]}
+              onPress={() => setActiveCategory('mobile')}
+            >
+              <Text 
+                style={[
+                  styles.categoryText,
+                  { color: theme.colors.subtext },
+                  activeCategory === 'mobile' && styles.activeCategoryText
+                ]}
+              >
+                Mobile
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.categoryButton,
+                { backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' },
+                activeCategory === 'other' && [styles.activeCategory, { backgroundColor: theme.colors.primary }]
+              ]}
+              onPress={() => setActiveCategory('other')}
+            >
+              <Text 
+                style={[
+                  styles.categoryText,
+                  { color: theme.colors.subtext },
+                  activeCategory === 'other' && styles.activeCategoryText
+                ]}
+              >
+                Other
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+          
+          <View style={[styles.skillsGrid, { gap: getSpacing(8) }]}>
+            {filteredSkills.map((skill, index) => (
+              <SkillCard key={index} skill={skill} />
+            ))}
+          </View>
+        </View>
+        
+        <View style={[styles.actionsSection, { gap: getSpacing(12) }]}>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('Contact' as never)}
+          >
+            <LinearGradient
+              colors={[theme.colors.secondary, theme.dark ? '#3B357A' : '#6C63FF']}
+              style={[styles.actionButtonGradient, { paddingVertical: getSpacing(16) }]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Ionicons name="mail" size={20} color="white" />
+              <Text style={styles.actionButtonText}>Contact Me</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={handleNotificationDemo}
+          >
+            <LinearGradient
+              colors={[theme.colors.primary, theme.dark ? '#993D3D' : '#FF8F8F']}
+              style={[styles.actionButtonGradient, { paddingVertical: getSpacing(16) }]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Ionicons name="notifications" size={20} color="white" />
+              <Text style={styles.actionButtonText}>Test Notification</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </LinearGradient>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -31,60 +338,46 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 40,
   },
   profileSection: {
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 30,
   },
   avatarGradient: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
   },
   avatarText: {
+    color: 'white',
     fontSize: 36,
     fontWeight: 'bold',
-    color: 'white',
   },
   name: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   title: {
     fontSize: 16,
-    color: '#CBD5E1',
     marginBottom: 12,
   },
   badgeContainer: {
     flexDirection: 'row',
-    marginTop: 8,
+    marginTop: 4,
   },
   badge: {
-    backgroundColor: 'rgba(34, 197, 94, 0.2)',
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#22C55E',
+    paddingVertical: 4,
+    borderRadius: 16,
   },
   badgeText: {
-    color: '#22C55E',
-    fontWeight: '600',
+    color: 'white',
     fontSize: 12,
-  },
-  aboutSection: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+    fontWeight: 'bold',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -94,21 +387,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: 'white',
     marginLeft: 8,
-  },
-  aboutText: {
-    color: '#CBD5E1',
-    fontSize: 15,
-    lineHeight: 24,
-    marginBottom: 20,
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
-    padding: 16,
   },
   statItem: {
     flex: 1,
@@ -117,23 +401,17 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#FF6B6B',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: '#CBD5E1',
   },
   statDivider: {
     width: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     marginHorizontal: 10,
   },
   skillsSection: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
   },
   categoryScroll: {
     marginBottom: 16,
@@ -146,13 +424,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     marginRight: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   activeCategory: {
-    backgroundColor: '#FF6B6B',
   },
   categoryText: {
-    color: '#CBD5E1',
     fontWeight: '600',
     fontSize: 14,
   },
@@ -166,7 +441,6 @@ const styles = StyleSheet.create({
   },
   skillCard: {
     width: '48%',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -176,7 +450,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   skillName: {
-    color: 'white',
     fontWeight: 'bold',
     fontSize: 14,
     marginBottom: 8,
@@ -193,10 +466,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
   },
   activeLevelDot: {
-    backgroundColor: '#FF6B6B',
   },
   inactiveLevelDot: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   actionsSection: {
     flexDirection: 'column',
@@ -205,11 +476,9 @@ const styles = StyleSheet.create({
   actionButton: {
     borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: 12,
     elevation: 2,
   },
   actionButtonGradient: {
-    paddingVertical: 16,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
@@ -221,268 +490,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-
-export const HomeScreen = () => {
-  const navigation = useNavigation();
-  const [activeCategory, setActiveCategory] = useState<'all' | 'frontend' | 'backend' | 'mobile' | 'other'>('all');
-
-  const filteredSkills = activeCategory === 'all' 
-    ? SKILLS 
-    : SKILLS.filter(skill => skill.category === activeCategory);
-
-  const handleNotificationDemo = async () => {
-    try {
-      await sendTestNotification('Test Notification', 'This is a test notification from Daily Hustle');
-      // No alert here - just let the notification appear
-    } catch (error) {
-      console.error('Error sending notification:', error);
-    }
-  };
-
-  return (
-    <LinearGradient
-      colors={['#121638', '#2C3E50']}
-      style={styles.container}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-    >
-      <StatusBar style="light" />
-      
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
-      >
-        <View style={styles.profileSection}>
-          <LinearGradient
-            colors={['#FF6B6B', '#FF8E53']}
-            style={styles.avatarGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <Text style={styles.avatarText}>JD</Text>
-          </LinearGradient>
-          
-          <Text style={styles.name}>John Doe</Text>
-          <Text style={styles.title}>Software Engineer & Developer</Text>
-          
-          <View style={styles.badgeContainer}>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>Available for work</Text>
-            </View>
-          </View>
-        </View>
-        
-        <View style={styles.aboutSection}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="person" size={22} color="#FF6B6B" />
-            <Text style={styles.sectionTitle}>About Me</Text>
-          </View>
-          
-          <Text style={styles.aboutText}>
-            I'm a passionate software engineer with 5+ years of experience creating modern web and mobile applications. 
-            I specialize in React Native, React, Node.js, and TypeScript. My mission is to build clean, 
-            performant, and user-friendly applications that solve real-world problems.
-          </Text>
-          
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>5+</Text>
-              <Text style={styles.statLabel}>Years Experience</Text>
-            </View>
-            
-            <View style={styles.statDivider} />
-            
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>30+</Text>
-              <Text style={styles.statLabel}>Projects</Text>
-            </View>
-            
-            <View style={styles.statDivider} />
-            
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>15+</Text>
-              <Text style={styles.statLabel}>Clients</Text>
-            </View>
-          </View>
-        </View>
-        
-        <View style={styles.skillsSection}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="code-slash" size={22} color="#FF6B6B" />
-            <Text style={styles.sectionTitle}>Skills</Text>
-          </View>
-          
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            style={styles.categoryScroll}
-            contentContainerStyle={styles.categoryContainer}
-          >
-            <TouchableOpacity
-              style={[
-                styles.categoryButton,
-                activeCategory === 'all' && styles.activeCategory
-              ]}
-              onPress={() => setActiveCategory('all')}
-            >
-              <Text 
-                style={[
-                  styles.categoryText,
-                  activeCategory === 'all' && styles.activeCategoryText
-                ]}
-              >
-                All
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.categoryButton,
-                activeCategory === 'frontend' && styles.activeCategory
-              ]}
-              onPress={() => setActiveCategory('frontend')}
-            >
-              <Text 
-                style={[
-                  styles.categoryText,
-                  activeCategory === 'frontend' && styles.activeCategoryText
-                ]}
-              >
-                Frontend
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.categoryButton,
-                activeCategory === 'backend' && styles.activeCategory
-              ]}
-              onPress={() => setActiveCategory('backend')}
-            >
-              <Text 
-                style={[
-                  styles.categoryText,
-                  activeCategory === 'backend' && styles.activeCategoryText
-                ]}
-              >
-                Backend
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.categoryButton,
-                activeCategory === 'mobile' && styles.activeCategory
-              ]}
-              onPress={() => setActiveCategory('mobile')}
-            >
-              <Text 
-                style={[
-                  styles.categoryText,
-                  activeCategory === 'mobile' && styles.activeCategoryText
-                ]}
-              >
-                Mobile
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.categoryButton,
-                activeCategory === 'other' && styles.activeCategory
-              ]}
-              onPress={() => setActiveCategory('other')}
-            >
-              <Text 
-                style={[
-                  styles.categoryText,
-                  activeCategory === 'other' && styles.activeCategoryText
-                ]}
-              >
-                Other
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
-          
-          <View style={styles.skillsGrid}>
-            {filteredSkills.map((skill, index) => (
-              <SkillCard key={index} skill={skill} />
-            ))}
-          </View>
-        </View>
-        
-        <View style={styles.actionsSection}>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('Portfolio' as never)}
-          >
-            <LinearGradient
-              colors={['#3498DB', '#2980B9']}
-              style={styles.actionButtonGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Ionicons name="folder-open" size={20} color="white" />
-              <Text style={styles.actionButtonText}>View Portfolio</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('Contact' as never)}
-          >
-            <LinearGradient
-              colors={['#9B59B6', '#8E44AD']}
-              style={styles.actionButtonGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Ionicons name="mail" size={20} color="white" />
-              <Text style={styles.actionButtonText}>Contact Me</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={handleNotificationDemo}
-          >
-            <LinearGradient
-              colors={['#FF6B6B', '#FF8E53']}
-              style={styles.actionButtonGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Ionicons name="notifications" size={20} color="white" />
-              <Text style={styles.actionButtonText}>Test Notification</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </LinearGradient>
-  );
-};
-
-interface SkillCardProps {
-  skill: Skill;
-}
-
-const SkillCard = ({ skill }: SkillCardProps) => {
-  return (
-    <View style={styles.skillCard}>
-      <Ionicons name={skill.icon as any} size={24} color="#FF6B6B" style={styles.skillIcon} />
-      <Text style={styles.skillName}>{skill.name}</Text>
-      <View style={styles.levelContainer}>
-        {[...Array(5)].map((_, i) => (
-          <View 
-            key={i} 
-            style={[
-              styles.levelDot,
-              i < skill.level ? styles.activeLevelDot : styles.inactiveLevelDot
-            ]} 
-          />
-        ))}
-      </View>
-    </View>
-  );
-};

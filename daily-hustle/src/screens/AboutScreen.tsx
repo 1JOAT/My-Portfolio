@@ -34,10 +34,9 @@ export const AboutScreen = () => {
           </View>
           
           <Text style={styles.description}>
-            I'm {DEVELOPER_NAME}, a seasoned software engineer with a passion for creating elegant, 
-            efficient, and user-friendly applications. With over 5 years of experience in the industry, 
-            I've developed a wide range of applications from small business websites to complex 
-            enterprise solutions.
+            I'm Praise Oke, a passionate software engineer with a focus on creating elegant, 
+            efficient, and user-friendly applications. I specialize in web and mobile development,
+            creating solutions that combine technical excellence with great user experience.
           </Text>
           
           <Text style={styles.description}>
@@ -56,17 +55,17 @@ export const AboutScreen = () => {
           <View style={styles.timelineItem}>
             <View style={styles.timelineDot} />
             <View style={styles.timelineContent}>
-              <Text style={styles.timelineDate}>2014 - 2018</Text>
+              <Text style={styles.timelineDate}>2018 - 2022</Text>
               <Text style={styles.timelineTitle}>BSc in Computer Science</Text>
-              <Text style={styles.timelineSubtitle}>University of Technology</Text>
+              <Text style={styles.timelineSubtitle}>University of Lagos</Text>
             </View>
           </View>
           
           <View style={styles.timelineItem}>
             <View style={styles.timelineDot} />
             <View style={styles.timelineContent}>
-              <Text style={styles.timelineDate}>2018 - 2020</Text>
-              <Text style={styles.timelineTitle}>MSc in Software Engineering</Text>
+              <Text style={styles.timelineDate}>2016 - 2018</Text>
+              <Text style={styles.timelineTitle}>Software Development Bootcamp</Text>
               <Text style={styles.timelineSubtitle}>Tech Institute</Text>
             </View>
           </View>
@@ -81,12 +80,13 @@ export const AboutScreen = () => {
           <View style={styles.timelineItem}>
             <View style={styles.timelineDot} />
             <View style={styles.timelineContent}>
-              <Text style={styles.timelineDate}>2020 - Present</Text>
-              <Text style={styles.timelineTitle}>Senior Software Engineer</Text>
-              <Text style={styles.timelineSubtitle}>Tech Innovations Inc.</Text>
+              <Text style={styles.timelineDate}>2022 - Present</Text>
+              <Text style={styles.timelineTitle}>Frontend Developer</Text>
+              <Text style={styles.timelineSubtitle}>TechSolutions Ltd.</Text>
               <Text style={styles.timelineDescription}>
-                Leading development of mobile and web applications. Mentoring junior developers.
-                Implementing CI/CD pipelines and best practices.
+                Building responsive web applications with React and TypeScript.
+                Working with RESTful APIs and state management solutions.
+                Implementing modern UI/UX designs with CSS frameworks.
               </Text>
             </View>
           </View>
@@ -94,12 +94,13 @@ export const AboutScreen = () => {
           <View style={styles.timelineItem}>
             <View style={styles.timelineDot} />
             <View style={styles.timelineContent}>
-              <Text style={styles.timelineDate}>2018 - 2020</Text>
-              <Text style={styles.timelineTitle}>Software Developer</Text>
-              <Text style={styles.timelineSubtitle}>Digital Solutions</Text>
+              <Text style={styles.timelineDate}>2020 - 2022</Text>
+              <Text style={styles.timelineTitle}>Junior Web Developer</Text>
+              <Text style={styles.timelineSubtitle}>Digital Creatives</Text>
               <Text style={styles.timelineDescription}>
-                Developed front-end interfaces using React and React Native.
-                Collaborated with design and back-end teams to deliver seamless user experiences.
+                Developed front-end interfaces using HTML, CSS, and JavaScript.
+                Collaborated with design teams to implement responsive web designs.
+                Assisted with backend development using Node.js and Express.
               </Text>
             </View>
           </View>
@@ -155,16 +156,37 @@ export const AboutScreen = () => {
               <Text style={styles.stackTitle}>Frontend</Text>
               <View style={styles.stackItems}>
                 <View style={styles.stackItem}>
+                  <Text style={styles.stackItemText}>HTML</Text>
+                </View>
+                <View style={styles.stackItem}>
+                  <Text style={styles.stackItemText}>CSS</Text>
+                </View>
+                <View style={styles.stackItem}>
+                  <Text style={styles.stackItemText}>JavaScript</Text>
+                </View>
+                <View style={styles.stackItem}>
+                  <Text style={styles.stackItemText}>TypeScript</Text>
+                </View>
+                <View style={styles.stackItem}>
                   <Text style={styles.stackItemText}>React</Text>
                 </View>
                 <View style={styles.stackItem}>
                   <Text style={styles.stackItemText}>React Native</Text>
                 </View>
                 <View style={styles.stackItem}>
-                  <Text style={styles.stackItemText}>TypeScript</Text>
+                  <Text style={styles.stackItemText}>Redux</Text>
                 </View>
                 <View style={styles.stackItem}>
-                  <Text style={styles.stackItemText}>Redux</Text>
+                  <Text style={styles.stackItemText}>SCSS</Text>
+                </View>
+                <View style={styles.stackItem}>
+                  <Text style={styles.stackItemText}>Bootstrap</Text>
+                </View>
+                <View style={styles.stackItem}>
+                  <Text style={styles.stackItemText}>Material UI</Text>
+                </View>
+                <View style={styles.stackItem}>
+                  <Text style={styles.stackItemText}>Tailwind CSS</Text>
                 </View>
               </View>
             </View>
@@ -179,28 +201,52 @@ export const AboutScreen = () => {
                   <Text style={styles.stackItemText}>Express</Text>
                 </View>
                 <View style={styles.stackItem}>
-                  <Text style={styles.stackItemText}>MongoDB</Text>
+                  <Text style={styles.stackItemText}>PHP</Text>
                 </View>
                 <View style={styles.stackItem}>
-                  <Text style={styles.stackItemText}>Firebase</Text>
+                  <Text style={styles.stackItemText}>Laravel</Text>
+                </View>
+                <View style={styles.stackItem}>
+                  <Text style={styles.stackItemText}>Socket.IO</Text>
                 </View>
               </View>
             </View>
             
             <View style={styles.stackGroup}>
-              <Text style={styles.stackTitle}>DevOps</Text>
+              <Text style={styles.stackTitle}>Database</Text>
+              <View style={styles.stackItems}>
+                <View style={styles.stackItem}>
+                  <Text style={styles.stackItemText}>MongoDB</Text>
+                </View>
+                <View style={styles.stackItem}>
+                  <Text style={styles.stackItemText}>MySQL</Text>
+                </View>
+                <View style={styles.stackItem}>
+                  <Text style={styles.stackItemText}>PostgreSQL</Text>
+                </View>
+                <View style={styles.stackItem}>
+                  <Text style={styles.stackItemText}>Redis</Text>
+                </View>
+                <View style={styles.stackItem}>
+                  <Text style={styles.stackItemText}>Supabase</Text>
+                </View>
+              </View>
+            </View>
+            
+            <View style={styles.stackGroup}>
+              <Text style={styles.stackTitle}>Tools & Other</Text>
               <View style={styles.stackItems}>
                 <View style={styles.stackItem}>
                   <Text style={styles.stackItemText}>Git</Text>
                 </View>
                 <View style={styles.stackItem}>
-                  <Text style={styles.stackItemText}>Docker</Text>
+                  <Text style={styles.stackItemText}>GitHub</Text>
                 </View>
                 <View style={styles.stackItem}>
-                  <Text style={styles.stackItemText}>AWS</Text>
+                  <Text style={styles.stackItemText}>Cursor</Text>
                 </View>
                 <View style={styles.stackItem}>
-                  <Text style={styles.stackItemText}>CI/CD</Text>
+                  <Text style={styles.stackItemText}>Claude</Text>
                 </View>
               </View>
             </View>
@@ -216,7 +262,7 @@ export const AboutScreen = () => {
           <View style={styles.connectContainer}>
             <TouchableOpacity 
               style={styles.connectButton}
-              onPress={() => openLink('https://github.com/yourusername')}
+              onPress={() => openLink('https://github.com/1JOAT')}
             >
               <LinearGradient
                 colors={['#333333', '#111111']}
@@ -231,22 +277,7 @@ export const AboutScreen = () => {
             
             <TouchableOpacity 
               style={styles.connectButton}
-              onPress={() => openLink('https://linkedin.com/in/yourusername')}
-            >
-              <LinearGradient
-                colors={['#0077B5', '#00669A']}
-                style={styles.connectGradient}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 0}}
-              >
-                <Ionicons name="logo-linkedin" size={20} color="#FFFFFF" />
-                <Text style={styles.connectText}>LinkedIn</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.connectButton}
-              onPress={() => openLink('https://twitter.com/yourusername')}
+              onPress={() => openLink('https://x.com/1JOAT')}
             >
               <LinearGradient
                 colors={['#1DA1F2', '#0D8ECF']}
@@ -261,7 +292,7 @@ export const AboutScreen = () => {
             
             <TouchableOpacity 
               style={styles.connectButton}
-              onPress={() => Linking.openURL('mailto:your.email@example.com')}
+              onPress={() => Linking.openURL('mailto:praiseoke215@gmail.com')}
             >
               <LinearGradient
                 colors={['#FF6B6B', '#FF8E53']}
@@ -273,11 +304,26 @@ export const AboutScreen = () => {
                 <Text style={styles.connectText}>Email</Text>
               </LinearGradient>
             </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.connectButton}
+              onPress={() => Linking.openURL('tel:+2348125556472')}
+            >
+              <LinearGradient
+                colors={['#4CAF50', '#388E3C']}
+                style={styles.connectGradient}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 0}}
+              >
+                <Ionicons name="call" size={20} color="#FFFFFF" />
+                <Text style={styles.connectText}>Call</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         </View>
         
         <View style={styles.footer}>
-          <Text style={styles.footerText}>© 2023 {DEVELOPER_NAME}</Text>
+          <Text style={styles.footerText}>© 2023 Praise Oke</Text>
           <Text style={styles.footerSubText}>Built with React Native</Text>
         </View>
       </ScrollView>

@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from '../utils/GradientWrapper';
 import { Note } from '../types';
+import { useTheme } from '../utils/ThemeContext';
 
 // Storage key
 const NOTES_STORAGE_KEY = '@dev_showcase_notes';
@@ -32,6 +33,7 @@ const NOTE_COLORS = [
 ];
 
 export const NotesScreen = () => {
+  const { theme, settings } = useTheme();
   const [notes, setNotes] = useState<Note[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -46,6 +48,11 @@ export const NotesScreen = () => {
   useEffect(() => {
     loadNotes();
   }, []);
+
+  // Calculate spacing based on compact mode
+  const getSpacing = (size: number) => {
+    return settings.compactMode ? size * 0.8 : size;
+  };
 
   // Load notes from AsyncStorage
   const loadNotes = async () => {
@@ -92,35 +99,34 @@ export const NotesScreen = () => {
     setModalVisible(true);
   };
 
-  // Save a new note or update an existing one
+  // Handle save note
   const handleSaveNote = () => {
     if (!title.trim()) {
-      Alert.alert('Error', 'Title is required');
+      Alert.alert('Error', 'Please enter a title for your note');
       return;
     }
 
-    // Parse tags from the input string
     const tags = tagInput
       .split(',')
       .map(tag => tag.trim())
       .filter(tag => tag !== '');
 
-    const now = new Date().toISOString();
-    let updatedNotes: Note[];
-
     if (editMode && currentNote) {
       // Update existing note
-      updatedNotes = notes.map(note => 
-        note.id === currentNote.id
-          ? {
-              ...note,
-              title,
-              content,
-              tags,
-              updatedAt: now,
-            }
-          : note
+      const updatedNote: Note = {
+        ...currentNote,
+        title,
+        content,
+        tags,
+        updatedAt: new Date().toISOString(),
+      };
+
+      const updatedNotes = notes.map(note => 
+        note.id === currentNote.id ? updatedNote : note
       );
+
+      setNotes(updatedNotes);
+      saveNotes(updatedNotes);
     } else {
       // Create new note
       const newNote: Note = {
@@ -128,19 +134,20 @@ export const NotesScreen = () => {
         title,
         content,
         tags,
-        createdAt: now,
-        updatedAt: now,
         color: NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
-      updatedNotes = [newNote, ...notes];
+
+      const updatedNotes = [...notes, newNote];
+      setNotes(updatedNotes);
+      saveNotes(updatedNotes);
     }
 
-    setNotes(updatedNotes);
-    saveNotes(updatedNotes);
     setModalVisible(false);
   };
 
-  // Delete a note
+  // Handle delete note
   const handleDeleteNote = (id: string) => {
     Alert.alert(
       'Delete Note',
@@ -163,16 +170,6 @@ export const NotesScreen = () => {
     );
   };
 
-  // Filter notes based on search query
-  const filteredNotes = searchQuery
-    ? notes.filter(
-        note =>
-          note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          note.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
-    : notes;
-
   // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -183,40 +180,57 @@ export const NotesScreen = () => {
     });
   };
 
+  // Filter notes based on search query
+  const filteredNotes = notes.filter(note => {
+    const searchTerms = searchQuery.toLowerCase().split(' ');
+    
+    return searchTerms.every(term => 
+      note.title.toLowerCase().includes(term) ||
+      note.content.toLowerCase().includes(term) ||
+      note.tags.some(tag => tag.toLowerCase().includes(term))
+    );
+  });
+
   return (
     <LinearGradient
-      colors={['#121638', '#2C3E50']}
+      colors={[theme.colors.background, theme.colors.card]}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
-      <StatusBar style="light" />
+      <StatusBar style={theme.dark ? "light" : "dark"} />
       
       <View style={styles.header}>
-        <Ionicons name="document-text" size={28} color="#FF6B6B" />
-        <Text style={styles.headerText}>Notes</Text>
+        <Ionicons name="document-text" size={28} color={theme.colors.primary} />
+        <Text style={[styles.headerText, { color: theme.colors.text }]}>Notes</Text>
       </View>
       
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#94A3B8" style={styles.searchIcon} />
+      <View style={[
+        styles.searchContainer, 
+        { 
+          backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+          padding: getSpacing(12)
+        }
+      ]}>
+        <Ionicons name="search" size={20} color={theme.colors.subtext} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: theme.colors.text }]}
           placeholder="Search notes..."
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.colors.subtext}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-        {searchQuery ? (
+        {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={20} color="#94A3B8" />
+            <Ionicons name="close-circle" size={20} color={theme.colors.subtext} />
           </TouchableOpacity>
-        ) : null}
+        )}
       </View>
-      
+
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B6B" />
-          <Text style={styles.loadingText}>Loading notes...</Text>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.text }]}>Loading notes...</Text>
         </View>
       ) : (
         <FlatList
@@ -224,67 +238,67 @@ export const NotesScreen = () => {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={[styles.noteCard, { borderLeftColor: item.color }]}
+              style={[
+                styles.noteCard, 
+                { 
+                  backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                  borderLeftColor: item.color,
+                  marginBottom: getSpacing(12),
+                  padding: getSpacing(14)
+                }
+              ]}
               onPress={() => handleEditNote(item)}
             >
               <View style={styles.noteHeader}>
-                <Text style={styles.noteTitle} numberOfLines={1}>
+                <Text style={[styles.noteTitle, { color: theme.colors.text }]} numberOfLines={1}>
                   {item.title}
                 </Text>
                 <TouchableOpacity
                   onPress={() => handleDeleteNote(item.id)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
+                  <Ionicons name="trash-outline" size={18} color={theme.colors.primary} />
                 </TouchableOpacity>
               </View>
               
-              <Text style={styles.noteContent} numberOfLines={2}>
+              <Text style={[styles.noteContent, { color: theme.colors.subtext }]} numberOfLines={2}>
                 {item.content}
               </Text>
               
               {item.tags.length > 0 && (
                 <View style={styles.tagsContainer}>
                   {item.tags.map((tag, index) => (
-                    <View key={index} style={styles.tag}>
-                      <Text style={styles.tagText}>#{tag}</Text>
+                    <View key={index} style={[styles.tag, { backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.07)' }]}>
+                      <Text style={[styles.tagText, { color: theme.colors.primary }]}>#{tag}</Text>
                     </View>
                   ))}
                 </View>
               )}
               
-              <Text style={styles.noteDate}>
+              <Text style={[styles.noteDate, { color: theme.colors.subtext }]}>
                 Updated {formatDate(item.updatedAt)}
               </Text>
             </TouchableOpacity>
           )}
-          contentContainerStyle={styles.notesList}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="document-text-outline" size={60} color="#CBD5E1" style={styles.emptyIcon} />
-              <Text style={styles.emptyText}>
-                {searchQuery ? 'No notes matching your search' : 'No notes yet'}
-              </Text>
-              <Text style={styles.emptySubText}>
-                {searchQuery ? 'Try a different search term' : 'Tap the + button to create your first note'}
-              </Text>
-            </View>
-          }
+          contentContainerStyle={[styles.notesList, { padding: getSpacing(16) }]}
+          showsVerticalScrollIndicator={false}
         />
       )}
       
-      <TouchableOpacity
-        style={styles.addButton}
+      <TouchableOpacity 
+        style={[
+          styles.addButton, 
+          { 
+            backgroundColor: theme.colors.primary,
+            bottom: getSpacing(16),
+            right: getSpacing(16),
+            width: getSpacing(56),
+            height: getSpacing(56),
+          }
+        ]} 
         onPress={handleAddNote}
       >
-        <LinearGradient
-          colors={['#FF6B6B', '#FF8E53']}
-          style={styles.addButtonGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        >
-          <Ionicons name="add" size={32} color="white" />
-        </LinearGradient>
+        <Ionicons name="add" size={30} color="white" />
       </TouchableOpacity>
       
       <Modal
@@ -297,59 +311,48 @@ export const NotesScreen = () => {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalContainer}
         >
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
                 {editMode ? 'Edit Note' : 'New Note'}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#FF6B6B" />
+                <Ionicons name="close" size={24} color={theme.colors.primary} />
               </TouchableOpacity>
             </View>
             
             <TextInput
-              style={styles.input}
+              style={[styles.titleInput, { color: theme.colors.text, borderBottomColor: theme.colors.border }]}
               placeholder="Title"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.colors.subtext}
               value={title}
               onChangeText={setTitle}
-              autoFocus
             />
             
             <TextInput
-              style={styles.textArea}
-              placeholder="Note content..."
-              placeholderTextColor="#94A3B8"
+              style={[styles.contentInput, { color: theme.colors.text, backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)' }]}
+              placeholder="Type your note here..."
+              placeholderTextColor={theme.colors.subtext}
               value={content}
               onChangeText={setContent}
               multiline
-              numberOfLines={4}
               textAlignVertical="top"
             />
             
             <TextInput
-              style={styles.input}
-              placeholder="Tags (comma separated)"
-              placeholderTextColor="#94A3B8"
+              style={[styles.tagsInput, { color: theme.colors.text, backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)' }]}
+              placeholder="Tags (separated by commas)"
+              placeholderTextColor={theme.colors.subtext}
               value={tagInput}
               onChangeText={setTagInput}
             />
             
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={handleSaveNote}
-              >
-                <Text style={styles.saveButtonText}>Save</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity 
+              style={[styles.saveButton, { backgroundColor: theme.colors.primary }]}
+              onPress={handleSaveNote}
+            >
+              <Text style={styles.saveButtonText}>Save Note</Text>
+            </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -364,31 +367,23 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
+    padding: 20,
   },
   headerText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FF6B6B',
     marginLeft: 10,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    paddingHorizontal: 12,
     marginHorizontal: 16,
+    borderRadius: 12,
     marginBottom: 16,
-  },
-  searchIcon: {
-    marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    height: 44,
-    color: 'white',
+    marginLeft: 8,
     fontSize: 16,
   },
   loadingContainer: {
@@ -397,20 +392,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#CBD5E1',
-    marginTop: 12,
+    marginTop: 16,
     fontSize: 16,
   },
   notesList: {
-    padding: 16,
-    paddingBottom: 100, // Extra padding for FAB
+    paddingTop: 0,
   },
   noteCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderLeftWidth: 5,
+    borderLeftWidth: 4,
   },
   noteHeader: {
     flexDirection: 'row',
@@ -421,12 +411,10 @@ const styles = StyleSheet.create({
   noteTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: 'white',
     flex: 1,
   },
   noteContent: {
     fontSize: 14,
-    color: '#CBD5E1',
     marginBottom: 12,
   },
   tagsContainer: {
@@ -435,61 +423,29 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tag: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 12,
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
+    borderRadius: 12,
     marginRight: 6,
     marginBottom: 6,
   },
   tagText: {
-    color: '#CBD5E1',
     fontSize: 12,
+    fontWeight: '500',
   },
   noteDate: {
     fontSize: 12,
-    color: '#94A3B8',
-    textAlign: 'right',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    marginTop: 20,
-  },
-  emptyIcon: {
-    marginBottom: 16,
-  },
-  emptyText: {
-    color: '#CBD5E1',
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  emptySubText: {
-    color: '#94A3B8',
-    fontSize: 14,
-    textAlign: 'center',
   },
   addButton: {
     position: 'absolute',
-    bottom: 20,
-    right: 20,
-    borderRadius: 30,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-  },
-  addButtonGradient: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   modalContainer: {
     flex: 1,
@@ -497,11 +453,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: '#1E293B',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 20,
-    maxHeight: '80%',
+    maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -512,49 +467,36 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: 'white',
   },
-  input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    padding: 12,
+  titleInput: {
+    fontSize: 18,
+    fontWeight: 'bold',
     marginBottom: 16,
-    color: 'white',
-    fontSize: 16,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
   },
-  textArea: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
+  contentInput: {
+    fontSize: 16,
     padding: 12,
+    borderRadius: 12,
+    minHeight: 150,
     marginBottom: 16,
-    color: 'white',
+  },
+  tagsInput: {
     fontSize: 16,
-    minHeight: 120,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 8,
-  },
-  cancelButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    marginRight: 12,
-  },
-  cancelButtonText: {
-    color: '#94A3B8',
-    fontSize: 16,
-    fontWeight: '600',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 20,
   },
   saveButton: {
-    backgroundColor: '#FF6B6B',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   saveButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
 }); 
