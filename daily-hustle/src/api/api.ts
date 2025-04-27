@@ -1,7 +1,6 @@
 import { Task, Message } from '../types';
 
-// Replace with your server URL when deployed
-const API_URL = 'http://172.20.10.2:5050';
+
 
 // Task APIs
 export const fetchTasks = async (userId: string = 'dev1'): Promise<Task[]> => {
